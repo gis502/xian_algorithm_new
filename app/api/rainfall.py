@@ -142,7 +142,7 @@ async def get_rainfall_at_point(
         
         if not rainfall_info:
             return {
-                "code": 404,
+                "code": 200,
                 "message": "未找到该点位的降雨数据",
                 "data": None
             }
