@@ -10,7 +10,7 @@ class RainfallGridRequest(BaseModel):
     time: Optional[str] = Field(
         None, 
         alias="time",
-        description="查询时间 ISO格式，默认为当前时间（自动查询前12小时数据）", 
+        description="查询时间 ISO格式，默认为当前时间（自动查询前12小时或24小时数据）", 
         example="2024-01-01T12:00:00"
     )
     resolution: float = Field(
@@ -19,6 +19,13 @@ class RainfallGridRequest(BaseModel):
         description="栅格分辨率（度）", 
         gt=0, 
         le=0.1
+    )
+    duration: int = Field(
+        12, 
+        alias="duration",
+        description="持续时间（小时），可选12或24", 
+        ge=12, 
+        le=24
     )
     
     class Config:
