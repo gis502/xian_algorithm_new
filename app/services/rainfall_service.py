@@ -305,7 +305,7 @@ class InterpolationService:
         # 国标降雨等级颜色映射
         if rainfall < 0.1:
             return "rgba(200,200,200,0)"  # 透明 - 微量降雨（零星小雨）
-        elif rainfall < 10 if duration == 12 else 9.9:
+        elif rainfall < 5 if duration == 12 else 9.9:
             return "rgba(0,0,255,0.4)"      # 浅蓝 - 小雨
         elif rainfall < 15 if duration == 12 else 25:
             return "rgba(0,255,255,0.5)"    # 青色 - 中雨
