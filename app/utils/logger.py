@@ -1,104 +1,89 @@
 """
-日志配置工具
+日志工具类
+支持按天分割、自动清理过期日志
 """
 import logging
-import sys
 from pathlib import Path
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
-from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
+from datetime import datetime, timedelta
 
 
-class LoggerConfig:
-    """日志配置类"""
-    
-    def __init__(self, log_dir: str = "logs", log_level: str = "INFO"):
-        self.log_dir = Path(log_dir)
-        self.log_level = getattr(logging, log_level.upper(), logging.INFO)
-        self.ensure_log_directory()
-    
-    def ensure_log_directory(self):
-        """确保日志目录存在"""
-        if not self.log_dir.exists():
-            self.log_dir.mkdir(parents=True, exist_ok=True)
-    
-    def setup_logger(
-        self, 
-        name: str = "app",
-        log_file: str = None,
-        max_bytes: int = 10 * 1024 * 1024,  # 10MB
-        backup_count: int = 5,
-        use_timed_rotation: bool = False
-    ) -> logging.Logger:
-        """配置日志记录器
+class LoggerManager:
+    """日志管理器"""
+
+    _loggers = {}
+
+    @classmethod
+    def get_logger(cls, name: str = "algorithm", log_dir: str = "logs") -> logging.Logger:
+        """
+        获取日志记录器
         
         Args:
-            name: 日志记录器名称
-            log_file: 日志文件名（None则使用时间戳）
-            max_bytes: 单个日志文件最大大小
-            backup_count: 保留的备份文件数量
-            use_timed_rotation: 是否使用按时间轮转
+            name: 日志名称
+            log_dir: 日志目录
             
         Returns:
-            配置好的Logger实例
+            logging.Logger 实例
         """
+        if name in cls._loggers:
+            return cls._loggers[name]
+
+        # 创建日志目录
+        log_path = Path(log_dir)
+        log_path.mkdir(parents=True, exist_ok=True)
+
+        # 创建 logger
         logger = logging.getLogger(name)
-        logger.setLevel(self.log_level)
-        
-        # 避免重复添加handler
+        logger.setLevel(logging.DEBUG)
+
+        # 避免重复添加 handler
         if logger.handlers:
+            cls._loggers[name] = logger
             return logger
-        
-        # 创建formatter
+
+        # 日志格式
         formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            '%(asctime)s [%(threadName)s] %(levelname)-5s %(name)s - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-        
-        # 控制台handler
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(self.log_level)
+
+        # 控制台 Handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-        
-        # 文件handler
-        if log_file is None:
-            timestamp = datetime.now().strftime("%Y%m%d")
-            log_file = f"app_{timestamp}.log"
-        
-        log_path = self.log_dir / log_file
-        
-        if use_timed_rotation:
-            # 按时间轮转（每天）
-            file_handler = TimedRotatingFileHandler(
-                log_path,
-                when='midnight',
-                interval=1,
-                backupCount=backup_count,
-                encoding='utf-8'
-            )
-        else:
-            # 按大小轮转
-            file_handler = RotatingFileHandler(
-                log_path,
-                maxBytes=max_bytes,
-                backupCount=backup_count,
-                encoding='utf-8'
-            )
-        
-        file_handler.setLevel(self.log_level)
+
+        # 文件 Handler - 按天分割
+        log_file = log_path / f"{name}.log"
+        file_handler = TimedRotatingFileHandler(
+            filename=str(log_file),
+            when='midnight',
+            interval=1,
+            backupCount=7,
+            encoding='utf-8'
+        )
+        file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
+
+        # 设置日志文件命名格式
+        file_handler.suffix = "%Y-%m-%d.log"
+
         logger.addHandler(file_handler)
-        
+
+        cls._loggers[name] = logger
         return logger
+
+
+# 便捷函数
+def get_logger(name: str = "algorithm", log_dir: str = "logs") -> logging.Logger:
+    """
+    获取日志记录器的便捷函数
     
-    @staticmethod
-    def get_logger(name: str = "app") -> logging.Logger:
-        """获取logger实例"""
-        return logging.getLogger(name)
-
-
-# 全局日志配置
-def setup_logging(log_dir: str = "logs", log_level: str = "INFO") -> logging.Logger:
-    """设置全局日志"""
-    logger_config = LoggerConfig(log_dir, log_level)
-    return logger_config.setup_logger()
+    Args:
+        name: 日志名称
+        log_dir: 日志目录
+        
+    Returns:
+        logging.Logger 实例
+    """
+    return LoggerManager.get_logger(name, log_dir)

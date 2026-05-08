@@ -51,3 +51,6 @@ htmlcov/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# Ignore dynaconf secret files
+.secrets.*
