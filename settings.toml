@@ -17,6 +17,11 @@ API_HOST = "127.0.0.1"
 API_PORT = 8082
 # 日志配置
 LOG_LEVEL = "DEBUG"
+# redis
+REDIS_HOST = "47.92.216.173"
+REDIS_PORT = 7655
+REDIS_PASSWORD = "zhangsan"
+REDIS_DB = 0
 
 # 生产环境
 [production]
@@ -32,3 +37,8 @@ API_HOST = "127.0.0.1"
 API_PORT = 8081
 # 日志配置
 LOG_LEVEL = "WARNING"
+# redis
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_PASSWORD = "XAYJ@gis2603"
+REDIS_DB = 0
