@@ -2,6 +2,10 @@
 [default]
 APP_NAME = "西安项目算法服务"
 LOG_DIR = "logs"
+# 雨量站栅格存储位置，:id会被替换成数据id
+RAIN_STATION_GRID_DIR = "/xian/rainfall/grid/images/:id"
+# 雨量站栅格存储redis的key
+REDIS_RAIN_STATION_GRID_KEY = "xian:rainfall:rain_station_grid"
 
 # 开发环境
 [development]
@@ -22,6 +26,9 @@ REDIS_HOST = "47.92.216.173"
 REDIS_PORT = 7655
 REDIS_PASSWORD = "zhangsan"
 REDIS_DB = 0
+# 文件存储
+FILE_STORE_DIR = "G:/files"
+
 
 # 生产环境
 [production]
@@ -42,3 +49,5 @@ REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 REDIS_PASSWORD = "XAYJ@gis2603"
 REDIS_DB = 0
+# 文件存储
+FILE_STORE_DIR = "D:/files"

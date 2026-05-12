@@ -2,6 +2,7 @@
 Redis 数据库工具类
 提供常用的 Redis 操作方法
 """
+import json
 import redis
 from typing import Any, Optional, List, Dict, Union
 from config import settings
@@ -45,29 +46,44 @@ class RedisHelper:
     
     def set(self, key: str, value: Any, ex: Optional[int] = None) -> bool:
         """
-        设置键值对
+        设置键值对（自动处理JSON序列化）
         
         Args:
             key: 键名
-            value: 值
+            value: 值（可以是字符串、数字、字典、列表等）
             ex: 过期时间（秒），None 表示不过期
             
         Returns:
             是否设置成功
         """
+        # 如果不是字符串，自动序列化为JSON
+        if not isinstance(value, str):
+            value = json.dumps(value, ensure_ascii=False)
         return self.client.set(key, value, ex=ex)
     
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str, parse_json: bool = True) -> Optional[Any]:
         """
-        获取键对应的值
+        获取键对应的值（自动处理JSON反序列化）
         
         Args:
             key: 键名
+            parse_json: 是否尝试解析为JSON对象
             
         Returns:
             键对应的值，如果键不存在则返回 None
         """
-        return self.client.get(key)
+        value = self.client.get(key)
+        if value is None:
+            return None
+        
+        # 尝试解析JSON
+        if parse_json:
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        return value
     
     def delete(self, *keys: str) -> int:
         """
@@ -148,42 +164,70 @@ class RedisHelper:
     
     def hset(self, name: str, key: str, value: Any) -> int:
         """
-        设置哈希表字段的值
+        设置哈希表字段的值（自动处理JSON序列化）
         
         Args:
             name: 哈希表名
             key: 字段名
-            value: 字段值
+            value: 字段值（可以是字符串、数字、字典、列表等）
             
         Returns:
             1 表示新增字段，0 表示更新字段
         """
+        # 如果不是字符串，自动序列化为JSON
+        if not isinstance(value, str):
+            value = json.dumps(value, ensure_ascii=False)
         return self.client.hset(name, key, value)
     
-    def hget(self, name: str, key: str) -> Optional[str]:
+    def hget(self, name: str, key: str, parse_json: bool = True) -> Optional[Any]:
         """
-        获取哈希表字段的值
+        获取哈希表字段的值（自动处理JSON反序列化）
         
         Args:
             name: 哈希表名
             key: 字段名
+            parse_json: 是否尝试解析为JSON对象
             
         Returns:
             字段值，如果字段不存在则返回 None
         """
-        return self.client.hget(name, key)
+        value = self.client.hget(name, key)
+        if value is None:
+            return None
+        
+        # 尝试解析JSON
+        if parse_json:
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        return value
     
-    def hgetall(self, name: str) -> Dict[str, str]:
+    def hgetall(self, name: str, parse_json: bool = True) -> Dict[str, Any]:
         """
-        获取哈希表所有字段和值
+        获取哈希表所有字段和值（自动处理JSON反序列化）
         
         Args:
             name: 哈希表名
+            parse_json: 是否尝试解析为JSON对象
             
         Returns:
             包含所有字段和值的字典
         """
-        return self.client.hgetall(name)
+        data = self.client.hgetall(name)
+        
+        if parse_json:
+            # 尝试解析每个值为JSON
+            result = {}
+            for k, v in data.items():
+                try:
+                    result[k] = json.loads(v)
+                except (json.JSONDecodeError, TypeError):
+                    result[k] = v
+            return result
+        
+        return data
     
     def hdel(self, name: str, *keys: str) -> int:
         """
