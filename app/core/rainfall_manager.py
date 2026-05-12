@@ -68,12 +68,9 @@ class RainfallManager:
                     # 更新最后记录的ID
                     self.last_max_id = max_id
                 
-                # 等待一段时间后再次检查（例如每5分钟）
-                time.sleep(300)
-                
-                # 更新查询时间为当前时间
-                query_time = datetime.now()
-                
+                # 等待一段时间后再次检查
+                time.sleep(5)
+
             except Exception as e:
                 self.logger.error(f"监测循环出错: {e}", exc_info=True)
                 time.sleep(60)  # 出错后等待1分钟再继续
