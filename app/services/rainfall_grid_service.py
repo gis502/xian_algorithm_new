@@ -398,8 +398,6 @@ class RainfallGridService:
                 'id': max_id,
                 'png_path': png_path,  # 相对路径
                 'query_time': query_time_str,
-                'create_time': datetime.now().isoformat(),
-                'bounds': self.xian_bounds,  # 地理边界
                 'resolution': self.grid_resolution,  # 分辨率
                 'station_count': len(station_data),  # 站点数量
                 # Cesium需要的定位信息
@@ -416,8 +414,8 @@ class RainfallGridService:
                 }
             }
             
-            # 存储到Redis（使用Hash结构，以ID为field）
-            redis_helper.hset(redis_key, str(max_id), json.dumps(grid_info, ensure_ascii=False))
+            # 存储到Redis
+            redis_helper.set(redis_key, json.dumps(grid_info))
             
             self.logger.info(f"栅格信息已存储到Redis，key: {redis_key}, id: {max_id}")
             
