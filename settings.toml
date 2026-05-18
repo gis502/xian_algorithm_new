@@ -6,6 +6,8 @@ LOG_DIR = "logs"
 RAIN_STATION_GRID_DIR = "/xian/rainfall/grid/images/:id"
 # 雨量站栅格存储redis的key
 REDIS_RAIN_STATION_GRID_KEY = "xian:rainfall:rain_station_grid"
+# 雨量站存储标识符的redis的key
+REDIS_RAIN_STATION_IDENTIFIER_KEY = "xian:rainfall:rain_station_identifier"
 
 # 开发环境
 [development]

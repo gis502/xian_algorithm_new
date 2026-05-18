@@ -56,7 +56,7 @@ def start():
     
     # 启动降雨站点监测
     logger.info("启动降雨站点监测服务...")
-    rainfall_manager.monitoring_rainfall_station_id('2025-08-20 12:00:00')
+    rainfall_manager.monitoring_rainfall_station_id('2025-09-16 20:00:00')
     
     # 阻塞主线程，防止程序立即退出
     block_main_thread()

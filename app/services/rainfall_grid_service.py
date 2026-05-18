@@ -386,6 +386,7 @@ class RainfallGridService:
         """
         try:
             redis_key = settings.REDIS_RAIN_STATION_GRID_KEY
+            redis_identifier_key = settings.REDIS_RAIN_STATION_IDENTIFIER_KEY
             
             # 处理query_time，可能是datetime对象或字符串
             if isinstance(query_time, datetime):
@@ -416,6 +417,7 @@ class RainfallGridService:
             
             # 存储到Redis
             redis_helper.set(redis_key, json.dumps(grid_info))
+            redis_helper.set(redis_identifier_key, max_id)
             
             self.logger.info(f"栅格信息已存储到Redis，key: {redis_key}, id: {max_id}")
             
