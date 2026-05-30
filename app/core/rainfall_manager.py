@@ -24,7 +24,7 @@ class RainfallManager:
         Args:
             query_time: 查询时间，默认为当前时间
         """
-        from app.utils import thread_pool_manager
+        from app.utils.thread_pool_manager import thread_pool_manager
         
         if query_time is None:
             query_time = datetime.now()
@@ -56,7 +56,7 @@ class RainfallManager:
                 
                 # 如果ID为空（刚启动）或者改变，则生成降雨栅格
                 if self.last_max_id is None or max_id != self.last_max_id:
-                    from app.utils import thread_pool_manager
+                    from app.utils.thread_pool_manager import thread_pool_manager
                     
                     self.logger.info(f"检测到数据更新，旧ID: {self.last_max_id}, 新ID: {max_id}")
                     
