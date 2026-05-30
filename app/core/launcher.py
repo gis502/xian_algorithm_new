@@ -9,7 +9,6 @@ from app.core.venv_manager import check_virtualenv
 from app.core.dependency_manager import check_dependencies
 from app.utils.logger import get_logger
 from app.utils.thread_pool_manager import block_main_thread, thread_pool_manager
-from app.core.rainfall_manager import rainfall_manager
 
 
 class AppLauncher:
@@ -52,11 +51,13 @@ class AppLauncher:
 
 def start():
     """启动应用服务"""
+    from app.core.rainfall_manager import rainfall_manager
+
     logger = get_logger()
-    
+
     # 启动降雨站点监测
     logger.info("启动降雨站点监测服务...")
     rainfall_manager.monitoring_rainfall_station_id('2025-09-16 20:00:00')
-    
+
     # 阻塞主线程，防止程序立即退出
     block_main_thread()

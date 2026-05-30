@@ -8,8 +8,6 @@ from typing import Optional
 
 from app.utils import thread_pool_manager
 from app.utils.logger import get_logger
-from app.repositories.rainfall_repository import rainfall_repository
-from app.services.rainfall_grid_service import rainfall_grid_service
 
 
 class RainfallManager:
@@ -42,12 +40,14 @@ class RainfallManager:
     def _monitoring_loop(self, initial_query_time: datetime):
         """
         监测循环，定期检查最大ID是否改变
-        
+
         Args:
             initial_query_time: 初始查询时间
         """
+        from app.repositories.rainfall_repository import rainfall_repository
+
         query_time = initial_query_time
-        
+
         while True:
             try:
                 # 查询当前时间窗口内的最大ID
@@ -78,14 +78,17 @@ class RainfallManager:
     def _generate_rainfall_grid_task(self, query_time: datetime, max_id: int):
         """
         生成降雨栅格的任务函数
-        
+
         Args:
             query_time: 查询时间
             max_id: 最大ID
         """
+        from app.repositories.rainfall_repository import rainfall_repository
+        from app.services.rainfall_grid_service import rainfall_grid_service
+
         try:
             self.logger.info(f"开始生成降雨栅格，查询时间: {query_time}, ID: {max_id}")
-            
+
             # 1. 查询雨量站点数据
             station_data = rainfall_repository.get_rainfall_stations_data(query_time)
             
