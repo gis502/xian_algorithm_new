@@ -7,8 +7,6 @@ from pathlib import Path
 from app.core.env_checker import check_environment
 from app.core.venv_manager import check_virtualenv
 from app.core.dependency_manager import check_dependencies
-from app.utils.logger import get_logger
-from app.utils.thread_pool_manager import block_main_thread, thread_pool_manager
 
 
 class AppLauncher:
@@ -22,6 +20,8 @@ class AppLauncher:
             project_root: 项目根目录路径
         """
         self.project_root = project_root
+        # 延迟导入logger
+        from app.utils.logger import get_logger
         self.logger = get_logger()
 
     def run(self):
@@ -52,6 +52,8 @@ class AppLauncher:
 def start():
     """启动应用服务"""
     from app.core.rainfall_manager import rainfall_manager
+    from app.utils.logger import get_logger
+    from app.utils.thread_pool_manager import block_main_thread, thread_pool_manager
 
     logger = get_logger()
 
