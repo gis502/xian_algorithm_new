@@ -13,23 +13,23 @@ class RainfallRepository:
     def get_max_rainfall_id(self, query_time: datetime) -> Optional[int]:
         """
         查询数据库中指定时间窗口内的最大ID
-        
+
         Args:
             query_time: 查询时间
-            
+
         Returns:
             最大ID，如果没有数据则返回None
         """
         sql = """
-            SELECT max(id) as max_id 
-            FROM xian_meteorology 
+            SELECT max(id) as max_id
+            FROM xian_meteorology
             WHERE datetime BETWEEN (
-                to_char(timestamp %s - interval '12 hours', 'YYYYMMDDHH24MISS')
+                to_char(%s::timestamp - interval '12 hours', 'YYYYMMDDHH24MISS')
             )::bigint AND (
-                to_char(timestamp %s, 'YYYYMMDDHH24MISS')
+                to_char(%s::timestamp, 'YYYYMMDDHH24MISS')
             )::bigint
         """
-        
+
         result = db_helper.execute_query_one(sql, (query_time, query_time))
         
         if result and result.get('max_id'):
@@ -39,23 +39,23 @@ class RainfallRepository:
     def get_rainfall_stations_data(self, query_time: datetime) -> List[Dict[str, Any]]:
         """
         查询雨量站点降雨数据
-        
+
         Args:
             query_time: 查询时间
-            
+
         Returns:
             站点数据列表，每个元素包含lon, lat, rainfall
         """
         sql = """
-            SELECT 
-                lon, 
-                lat, 
+            SELECT
+                lon,
+                lat,
                 SUM(rainfall_1h::numeric) AS rainfall
             FROM xian_meteorology
             WHERE datetime BETWEEN (
-                to_char(timestamp %s - interval '12 hours', 'YYYYMMDDHH24MISS')
+                to_char(%s::timestamp - interval '12 hours', 'YYYYMMDDHH24MISS')
             )::bigint AND (
-                to_char(timestamp %s, 'YYYYMMDDHH24MISS')
+                to_char(%s::timestamp, 'YYYYMMDDHH24MISS')
             )::bigint
             GROUP BY lon, lat
         """

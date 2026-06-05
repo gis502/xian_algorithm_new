@@ -54,3 +54,4 @@ htmlcov/
 
 # Ignore dynaconf secret files
 .secrets.*
+/test/
