@@ -1,0 +1,168 @@
+# 地震灾害链 DBN 图结构配置
+# 定义节点、各层节点列表、父子关系
+# 地震触发：滑坡、泥石流、崩塌
+
+# 推理配置
+inference_config:
+  match_strategy: first        # first=首条匹配（规则优先级从上到下），max=取最大概率
+  default_strategy: use_default  # 无规则匹配时使用 default_probability
+  max_cpt_parents: 20           # CPT 最大父节点数
+
+layers:
+  # 触发层（3个节点）
+  trigger:
+    - magnitude             # 震级（Richter scale）
+    - epicenter_distance    # 震中距（km）
+    - seismic_intensity     # 地震烈度（中国烈度表 I-XII）
+
+  # 环境层（14个节点）
+  # 去掉暴雨模型中的 impervious（不透水面）和 pipe_density（管网密度）
+  # 这两个因子主要影响城市内涝，与地震地质灾害关系不大
+  environment:
+    - elevation           # 高程
+    - slope               # 坡度
+    - aspect              # 坡向
+    - soil_type           # 土壤分类
+    - lithology           # 岩性
+    - landuse             # 土地利用类型
+    - terrain             # 地形分类
+    - ndvi                # 植被指数
+    - sand_content        # 土壤含沙量
+    - ph                  # 土壤PH值
+    - soil_moisture       # 土壤湿度
+    - organic_carbon      # 有机碳
+    - dist_to_river       # 距离河道距离
+    - dist_to_fault       # 距离断裂带距离
+
+  # 灾害层（3个节点）
+  # 地震触发的地质灾害：滑坡、泥石流、崩塌
+  # 不含山洪（flash_flood）和内涝（waterlogging），这两个主要由暴雨触发
+  hazard:
+    - landslide           # 滑坡
+    - debris_flow         # 泥石流
+    - collapse            # 崩塌
+
+edges:
+  # ============================================
+  # 触发层 → 灾害层
+  # 地震参数直接影响所有地质灾害类型
+  # ============================================
+
+  # 震级 → 灾害
+  - [magnitude, landslide]
+  - [magnitude, debris_flow]
+  - [magnitude, collapse]
+
+  # 震中距 → 灾害
+  - [epicenter_distance, landslide]
+  - [epicenter_distance, debris_flow]
+  - [epicenter_distance, collapse]
+
+  # 地震烈度 → 灾害
+  - [seismic_intensity, landslide]
+  - [seismic_intensity, debris_flow]
+  - [seismic_intensity, collapse]
+
+  # ============================================
+  # 环境层 → 灾害层
+  # 场地条件影响地震波放大效应和地质灾害易发性
+  # ============================================
+
+  # 高程影响泥石流
+  # - 泥石流：高程反映沟道纵坡和物源区高差（秦岭北麓800-1500m高发）
+  - [elevation, debris_flow]
+
+  # 坡度影响滑坡、泥石流、崩塌（最核心的场地因子）
+  # - 滑坡：Newmark位移与坡度直接相关
+  # - 泥石流：沟道纵坡决定物源运移能力
+  # - 崩塌：陡坡+地震是崩塌的典型触发条件
+  - [slope, landslide]
+  - [slope, debris_flow]
+  - [slope, collapse]
+
+  # 坡向影响滑坡
+  # - 阳坡冻融风化强烈，岩体更破碎，地震时更易失稳
+  - [aspect, landslide]
+
+  # 土壤类型影响滑坡、泥石流
+  # - 初育土（黄土）地震液化和震陷风险高
+  - [soil_type, landslide]
+  - [soil_type, debris_flow]
+
+  # 岩性影响滑坡、泥石流、崩塌（关键地质因子）
+  # - 松散堆积物（黄土）：地震时易发生震陷和液化
+  # - 变质岩/花岗岩：节理发育时崩塌风险高
+  # - 碎屑岩：软硬互层界面是滑动面
+  - [lithology, landslide]
+  - [lithology, debris_flow]
+  - [lithology, collapse]
+
+  # 土地利用类型影响滑坡
+  # - 城市：工程开挖坡脚/弃土加载降低边坡稳定性
+  # - 农田：梯田改造改变坡体应力状态
+  - [landuse, landslide]
+
+  # 地形分类影响滑坡、泥石流
+  # - 山地/深谷：地震波放大效应显著
+  # - 丘陵：黄土塬边地震滑坡
+  - [terrain, landslide]
+  - [terrain, debris_flow]
+
+  # 植被指数影响滑坡、泥石流
+  # - 根系加固作用：植被好→滑坡风险降低
+  # - 但地震烈度高时植被保护作用有限
+  - [ndvi, landslide]
+  - [ndvi, debris_flow]
+
+  # 土壤含沙量影响泥石流
+  # - 高含沙量→松散物源丰富→地震触发泥石流
+  - [sand_content, debris_flow]
+
+  # 土壤湿度影响滑坡、泥石流
+  # - 饱和土体在地震荷载下更易发生液化和失稳
+  # - 孔隙水压力升高降低有效应力
+  - [soil_moisture, landslide]
+  - [soil_moisture, debris_flow]
+
+  # 距离河道距离影响泥石流、崩塌
+  # - 泥石流：沟道物源供给
+  # - 崩塌：河流侧蚀黄土塬边 + 地震触发
+  - [dist_to_river, debris_flow]
+  - [dist_to_river, collapse]
+
+  # 距离断裂带距离影响滑坡、崩塌、泥石流
+  # - 发震断裂附近地震动强度大（近场效应）
+  # - 断裂带岩体破碎，地震时更易失稳
+  # - 西安：秦岭北缘断裂、渭河断裂为主要发震构造
+  - [dist_to_fault, landslide]
+  - [dist_to_fault, collapse]
+  - [dist_to_fault, debris_flow]
+
+# 节点状态定义
+# 与 discretization.yaml 保持一致
+node_states:
+  # 触发层（地震参数）
+  magnitude: [minor, light, moderate, strong, major, great]
+  epicenter_distance: [very_near, near, moderate, far]
+  seismic_intensity: [minor, light, moderate, severe, extreme]
+
+  # 环境层（与暴雨模型共享，状态名一致）
+  elevation: [basin, plain_urban, transition, low_mountain, mid_mountain, high_mountain]
+  slope: [flat, gentle, moderate, steep, very_steep, extreme_steep]
+  aspect: [north, east, south, west, north_loop]
+  soil_type: [ultisol, entisol, fluvo_aquic, yellow_brown]
+  lithology: [acid_rock, basic_rock, carbonate, metamorphic, mixed_clastic, terrigenous, unconsolidated]
+  landuse: [forest, farmland, urban, water, barren]
+  terrain: [mountain, plain, deep_valley, hill, gentle_hill, low_mountain, flat_plain]
+  ndvi: [water, bare, sparse, moderate, dense, very_dense]
+  sand_content: [low, medium, high]
+  ph: [acidic, neutral, alkaline]
+  soil_moisture: [dry, moist, wet, saturated]
+  organic_carbon: [low, medium, high]
+  dist_to_river: [very_close, close, moderate, far]
+  dist_to_fault: [very_close, close, moderate, far]
+
+  # 灾害层
+  landslide: [none, low, medium, high, very_high]
+  debris_flow: [none, low, medium, high, very_high]
+  collapse: [none, low, medium, high, very_high]

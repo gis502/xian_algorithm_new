@@ -1,0 +1,194 @@
+# 离散化规则配置
+# 定义所有连续因子的分箱规则
+# 包含暴雨灾害链和地震灾害链的全部因子
+
+# ============================================
+# 暴雨触发层离散化规则
+# ============================================
+
+rain_intensity:
+  description: "降雨强度等级"
+  unit: "mm/h"
+  bins: [0, 0.2, 5, 15, 30, 70, 140, 99999]
+  labels: [no_rain, light, moderate, heavy, storm, downpour, extreme]
+
+duration:
+  description: "持续时间"
+  unit: "h"
+  bins: [1, 3, 12, 99999]
+  labels: [short, medium, long]
+
+accum_rain:
+  description: "累计降雨量"
+  unit: "mm"
+  bins: [0, 10, 25, 50, 100, 99999]
+  labels: [trace, light, moderate, heavy, extreme]
+
+# ============================================
+# 地震触发层离散化规则
+# ============================================
+
+magnitude:
+  description: "地震震级"
+  unit: "Richter"
+  # 基于Keefer (1984) 地震触发地质灾害的震级阈值
+  # M<4.0: 无显著地质灾害; M4.0-4.9: 轻微; M5.0-5.9: 中等
+  # M6.0-6.9: 显著; M7.0-7.9: 严重; M≥8.0: 灾难性
+  bins: [0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0]
+  labels: [minor, light, moderate, strong, major, great]
+
+epicenter_distance:
+  description: "震中距"
+  unit: "km"
+  # 地震地质灾害影响范围（Keefer 1984）：
+  # M5.0: ~10km; M6.0: ~30km; M7.0: ~100km; M8.0: ~300km
+  # 分级取各震级影响范围的中位值
+  bins: [0, 30, 100, 300, 99999]
+  labels: [very_near, near, moderate, far]
+
+seismic_intensity:
+  description: "地震烈度"
+  unit: "中国烈度表"
+  # GB 18306-2015 中国地震动参数区划图
+  # I-V: 无显著地质灾害; VI-VII: 轻微; VIII-IX: 显著; X-XII: 严重; >XII: 灾难性
+  # 输入为数值烈度（1-12），映射到离散等级
+  bins: [0, 5, 7, 9, 12, 99]
+  labels: [minor, light, moderate, severe, extreme]
+
+# ============================================
+# 环境层离散化规则（暴雨/地震共享）
+# ============================================
+
+elevation:
+  description: "高程"
+  unit: "m"
+  bins: [0, 400, 500, 700, 1000, 1500, 99999]
+  labels: [basin, plain_urban, transition, low_mountain, mid_mountain, high_mountain]
+
+slope:
+  description: "坡度"
+  unit: "度"
+  bins: [0, 5, 15, 25, 35, 45, 90]
+  labels: [flat, gentle, moderate, steep, very_steep, extreme_steep]
+
+aspect:
+  description: "坡向"
+  unit: "度"
+  bins: [0, 45, 135, 225, 315, 360]
+  labels: [north, east, south, west, north_loop]
+
+soil_type:
+  description: "土壤分类（中国土壤分类系统）"
+  unit: "分类代码"
+  # 数据库实际编码（xian_soil 表 value 字段，来源：pg_description）
+  mapping:
+    0: ultisol        # 老成土
+    6: entisol        # 初育土
+    11: fluvo_aquic   # 潮土
+    18: yellow_brown  # 黄棕壤
+  default: entisol
+
+lithology:
+  description: "岩性（中国地质分类）"
+  unit: "分类代码"
+  # 数据库实际编码（xian_lithology 表 value 字段，来源：pg_description）
+  # 工程地质分组：按 SiO₂ 含量 + 成因合并同类岩性
+  mapping:
+    1: acid_rock          # 酸性侵入岩（花岗岩等，SiO₂>66%，100条）
+    3: basic_rock         # 基性侵入岩（辉长岩等，SiO₂ 45-52%，5条）
+    4: basic_rock         # 基性火山岩（玄武岩等，合并入基性岩，17条）
+    5: carbonate          # 碳酸盐岩（石灰岩、白云岩，142条）
+    10: metamorphic       # 变质岩（片麻岩、大理岩，156条）
+    11: mixed_clastic     # 混合碎屑沉积岩（砂岩+泥岩互层，35条）
+    13: terrigenous       # 陆源碎屑岩（砂岩、粉砂岩，180条）
+    14: unconsolidated    # 松散堆积物（黄土、冲洪积，566条）
+  default: unconsolidated
+
+landuse:
+  description: "土地利用类型"
+  unit: "分类代码"
+  # 数据库实际编码（GLC FCS30 分类体系）
+  mapping:
+    10: forest       # 林地（377条）
+    30: farmland     # 农田（190条）
+    40: urban        # 城市（105条）
+    50: water        # 水域（505条）
+    60: barren       # 裸地（23条）
+    80: farmland     # 耕地（1条，合并入农田）
+  default: farmland
+
+terrain:
+  description: "地形分类（中国地形分类体系）"
+  unit: "分类代码"
+  # 数据库实际编码（xian_landform 表 value 字段，来源：pg_description）
+  # 工程地质分组：按坡度 + 地貌特征合并
+  mapping:
+    1: mountain       # 断裂山麓地带（秦岭北麓，276条）
+    2: plain          # 平坦平原（渭河平原，218条）
+    3: deep_valley    # 高山深峡谷（秦岭腹地，11条）
+    4: hill           # 丘陵（黄土塬，250条）
+    5: gentle_hill    # 低缓丘陵（塬边过渡带，86条）
+    6: low_mountain   # 低山（骊山等，261条）
+    7: flat_plain     # 平缓平原（冲积平原，99条）
+  default: hill
+
+impervious:
+  description: "不透水面"
+  unit: "比例"
+  bins: [0, 0.3, 0.6, 1.0]
+  labels: [low, medium, high]
+
+ndvi:
+  description: "植被指数"
+  unit: "NDVI值"
+  bins: [-1, 0, 0.1, 0.3, 0.5, 0.8, 1.0]
+  labels: [water, bare, sparse, moderate, dense, very_dense]
+
+sand_content:
+  description: "土壤含沙量"
+  unit: "百分比"
+  bins: [0, 20, 40, 100]
+  labels: [low, medium, high]
+
+ph:
+  description: "土壤PH值"
+  unit: "PH值"
+  bins: [0, 6.5, 7.5, 14]
+  labels: [acidic, neutral, alkaline]
+
+soil_moisture:
+  description: "土壤湿度"
+  unit: "百分比"
+  bins: [0, 20, 40, 80, 100]
+  labels: [dry, moist, wet, saturated]
+
+organic_carbon:
+  description: "有机碳"
+  unit: "百分比"
+  bins: [0, 1, 2, 100]
+  labels: [low, medium, high]
+
+dist_to_river:
+  description: "距离河道距离"
+  unit: "米"
+  bins: [0, 50, 200, 500, 99999]
+  labels: [very_close, close, moderate, far]
+
+dist_to_fault:
+  description: "距离断裂带距离"
+  unit: "米"
+  bins: [0, 500, 1500, 3000, 99999]
+  labels: [very_close, close, moderate, far]
+
+pipe_density:
+  description: "供水管网密度"
+  unit: "m/m²"
+  # 默认规则
+  default:
+    bins: [0, 0.001, 0.01, 0.05, 99999]
+    labels: [none, low, medium, high]
+  # 区域覆盖规则
+  region_overrides:
+    610100:  # 西安市
+      bins: [0, 0.002, 0.015, 0.04, 99999]
+      labels: [none, low, medium, high]

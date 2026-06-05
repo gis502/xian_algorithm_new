@@ -1,0 +1,362 @@
+# ================================================================
+# 条件概率表（CPT）配置
+# ================================================================
+
+# 推理配置
+match_strategy: first       # 首条匹配（规则优先级从上到下，max为最大匹配）
+default_strategy: use_default  # 无匹配时使用 default_probability
+
+# ============================================
+# 触发层
+# ============================================
+
+rain_intensity:
+  type: prior
+  # 西安气象站统计：无雨~小雨占60%，中雨~大雨25%，暴雨+15%
+  # [无雨, 小雨, 中雨, 大雨, 暴雨, 大暴雨, 特大暴雨]
+  probabilities: [0.35, 0.25, 0.15, 0.10, 0.08, 0.05, 0.02]
+
+duration:
+  type: prior
+  # 西安暴雨特征：短历时（<3h）占多数，长历时（>12h）与华西秋雨相关
+  # [短, 中, 长]
+  probabilities: [0.50, 0.30, 0.20]
+
+accum_rain:
+  type: prior
+  # 西安年均降水550-700mm，汛期集中60-70%
+  # [微量, 小雨, 中雨, 大雨, 极端]
+  probabilities: [0.30, 0.25, 0.20, 0.15, 0.10]
+
+# ============================================
+# 灾害层（条件概率）
+# 规则匹配策略：首条匹配，从上到下扫描，命中即返回
+# 高风险规则在前，低风险兜底规则在后
+# ============================================
+
+# ----------------------------------------
+# 滑坡（Landslide）
+# 西安特征：
+#   - 黄土滑坡：黄土台塬塬边（白鹿塬、神禾塬、少陵塬），坡度15-35°
+#   - 岩质滑坡：秦岭北坡变质岩/花岗岩区，坡度>25°
+#   - 工程滑坡：城区开挖坡脚（地铁/道路建设）、弃土加载
+#   - 触发因素：前期降雨饱和+短历时高强度暴雨
+#   - 断裂带控制：秦岭北缘断裂沿线滑坡密度最高
+# ----------------------------------------
+landslide:
+  type: conditional
+  parents: [rain_intensity, duration, slope, soil_type, lithology, ndvi, soil_moisture, aspect, dist_to_river, dist_to_fault, landuse]
+  default_probability: 0.02
+  rules:
+    # === 极高风险（≥0.70）===
+    # 暴雨+陡坡+前期饱和：秦岭北坡典型触发条件
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+      probability: 0.75
+    # 暴雨+陡坡+断裂带附近：秦岭北缘断裂沿线，岩体破碎
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.72
+    # 长历时暴雨+陡坡+饱和：持续降雨导致深层渗流
+    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+      probability: 0.70
+
+    # === 高风险（0.50-0.65）===
+    # 暴雨+中陡坡：黄土塬边典型触发条件
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep]}
+      probability: 0.60
+    # 大雨+陡坡+松散堆积物：黄土滑坡物质条件充分
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [steep, very_steep, extreme_steep], lithology: [unconsolidated]}
+      probability: 0.58
+    # 暴雨+中陡坡+断裂带附近
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [moderate, steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.55
+    # 城区开挖坡脚/弃土加载+暴雨：工程滑坡
+    - condition: {landuse: [urban], slope: [moderate, steep, very_steep, extreme_steep], rain_intensity: [heavy, storm, downpour, extreme]}
+      probability: 0.52
+    # 大雨+陡坡+初育土（黄土）：黄土塬边滑坡
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [steep, very_steep, extreme_steep], soil_type: [entisol]}
+      probability: 0.50
+
+    # === 中风险（0.20-0.40）===
+    # 大雨+中坡+饱和
+    - condition: {rain_intensity: [heavy], slope: [moderate, steep], soil_moisture: [wet, saturated]}
+      probability: 0.40
+    # 中雨+陡坡
+    - condition: {rain_intensity: [moderate, heavy], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.35
+    # 暴雨+缓坡+松散堆积物：塬面黄土
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [gentle, moderate], lithology: [unconsolidated]}
+      probability: 0.30
+    # 断裂带+陡坡（无强降雨也有基岩蠕变风险）
+    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.25
+    # 城区+中坡：工程扰动
+    - condition: {landuse: [urban], slope: [moderate, steep]}
+      probability: 0.20
+
+    # === 低风险兜底（≤0.05）===
+    - condition: {rain_intensity: [no_rain, light]}
+      probability: 0.02
+    - condition: {slope: [flat, gentle]}
+      probability: 0.02
+
+# ----------------------------------------
+# 泥石流（Debris Flow）
+# 西安特征：
+#   - 集中在秦岭北麓沟道（周至、户县、长安、蓝田）
+#   - 物源：秦岭北缘断裂破碎带+坡面松散堆积物+崩塌堆积体
+#   - 沟道纵坡大（>15°），高差500-2000m，势能充足
+#   - 触发：短历时高强度暴雨（3h降雨>50mm）
+#   - 高发区海拔800-1500m（中山带，物源最丰富）
+# ----------------------------------------
+debris_flow:
+  type: conditional
+  parents: [rain_intensity, duration, slope, soil_type, lithology, sand_content, ndvi, soil_moisture, dist_to_river, dist_to_fault, elevation]
+  default_probability: 0.02
+  rules:
+    # === 极高风险（≥0.70）===
+    # 暴雨+陡坡+高含沙量：典型泥石流触发条件
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], sand_content: [medium, high]}
+      probability: 0.80
+    # 暴雨+陡坡+断裂带附近：破碎岩体提供丰富物源
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.75
+    # 暴雨+中高山区+松散堆积物：秦岭北麓沟道泥石流
+    - condition: {rain_intensity: [storm, downpour, extreme], elevation: [mid_mountain, high_mountain], lithology: [unconsolidated, mixed_clastic]}
+      probability: 0.75
+    # 长历时暴雨+陡坡+饱和：深层渗透触发
+    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+      probability: 0.72
+
+    # === 高风险（0.50-0.65）===
+    # 暴雨+中陡坡：沟道汇流
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep]}
+      probability: 0.60
+    # 大雨+陡坡+高含沙量
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [steep, very_steep, extreme_steep], sand_content: [medium, high]}
+      probability: 0.55
+    # 中高山区+中等降雨：物源区本身不稳定
+    - condition: {elevation: [mid_mountain, high_mountain], slope: [moderate, steep, very_steep, extreme_steep], rain_intensity: [heavy, storm, downpour, extreme]}
+      probability: 0.55
+    # 松散堆积物+陡坡+大雨：黄土泥石流
+    - condition: {lithology: [unconsolidated, mixed_clastic], slope: [steep, very_steep, extreme_steep], rain_intensity: [heavy, storm, downpour, extreme]}
+      probability: 0.52
+
+    # === 中风险（0.20-0.40）===
+    # 大雨+中坡
+    - condition: {rain_intensity: [moderate, heavy], slope: [moderate, steep]}
+      probability: 0.30
+    # 中高山区+中等降雨：物源区稳定性差
+    - condition: {elevation: [mid_mountain, high_mountain], slope: [moderate, steep], rain_intensity: [moderate, heavy]}
+      probability: 0.28
+    # 暴雨+缓坡+松散堆积物
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [gentle, moderate], lithology: [unconsolidated]}
+      probability: 0.25
+    # 断裂带+陡坡（无强降雨，崩塌堆积物也可启动）
+    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.22
+
+    # === 低风险兜底（≤0.05）===
+    - condition: {rain_intensity: [no_rain, light]}
+      probability: 0.01
+    - condition: {slope: [flat, gentle]}
+      probability: 0.02
+    - condition: {elevation: [basin, plain_urban]}
+      probability: 0.02
+
+# ----------------------------------------
+# 山洪（Flash Flood）
+# 西安特征：
+#   - 秦岭北坡溪流：短沟、陡坡、汇流快，暴雨后1-2h即达峰值
+#   - 城区河流（灞河、浐河、沣河、涝河）：暴雨叠加城市径流
+#   - 渭河平原低洼区：排水不畅+河道顶托
+#   - 关键控制因子：降雨强度、前期土壤湿度、地形坡度
+#   - 典型事件：2016年7月长安区秦岭北坡山洪，2021年8月蓝田山洪
+# ----------------------------------------
+flash_flood:
+  type: conditional
+  parents: [rain_intensity, duration, accum_rain, elevation, terrain, dist_to_river, soil_moisture]
+  default_probability: 0.04
+  rules:
+    # === 极高风险（≥0.80）===
+    # 暴雨+饱和土壤+近河道：入渗率接近零，全部转为地表径流
+    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [saturated], dist_to_river: [very_close, close]}
+      probability: 0.90
+    # 暴雨+饱和+山地地形：秦岭北坡典型山洪条件
+    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [wet, saturated], terrain: [mountain, deep_valley, low_mountain]}
+      probability: 0.85
+    # 大暴雨+近河道+低洼区：渭河平原洪水
+    - condition: {rain_intensity: [downpour, extreme], dist_to_river: [very_close, close], elevation: [basin, plain_urban]}
+      probability: 0.82
+
+    # === 高风险（0.55-0.75）===
+    # 暴雨+近河道
+    - condition: {rain_intensity: [storm, downpour, extreme], dist_to_river: [very_close, close]}
+      probability: 0.70
+    # 暴雨+山地地形（远离河道但汇流快）
+    - condition: {rain_intensity: [storm, downpour, extreme], terrain: [mountain, deep_valley, low_mountain]}
+      probability: 0.65
+    # 大雨+饱和土壤+近河道
+    - condition: {rain_intensity: [heavy, storm, downpour], soil_moisture: [wet, saturated], dist_to_river: [very_close, close]}
+      probability: 0.60
+    # 长历时暴雨+山地：持续汇流
+    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], terrain: [mountain, deep_valley, low_mountain]}
+      probability: 0.58
+    # 极端累计降雨+山地地形
+    - condition: {accum_rain: [extreme], terrain: [mountain, deep_valley, low_mountain]}
+      probability: 0.55
+
+    # === 中风险（0.25-0.45）===
+    # 大雨+近河道
+    - condition: {rain_intensity: [heavy], dist_to_river: [very_close, close]}
+      probability: 0.45
+    # 暴雨+湿土（非饱和）
+    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [wet]}
+      probability: 0.40
+    # 大雨+山地地形
+    - condition: {rain_intensity: [heavy], terrain: [mountain, deep_valley, low_mountain]}
+      probability: 0.35
+    # 中雨+饱和+近河道
+    - condition: {rain_intensity: [moderate, heavy], soil_moisture: [saturated], dist_to_river: [very_close, close]}
+      probability: 0.40
+    # 极端累计+低洼区
+    - condition: {accum_rain: [extreme], elevation: [basin, plain_urban]}
+      probability: 0.35
+    # 暴雨+缓坡+近河道（平原河道溢出）
+    - condition: {rain_intensity: [storm, downpour, extreme], dist_to_river: [very_close], terrain: [plain, flat_plain]}
+      probability: 0.30
+
+    # === 低风险兜底（≤0.05）===
+    - condition: {rain_intensity: [no_rain, light]}
+      probability: 0.01
+    - condition: {dist_to_river: [far]}
+      probability: 0.03
+
+# ----------------------------------------
+# 内涝（Waterlogging）
+# 西安特征：
+#   - 主城区（碑林、莲湖、新城）：不透水面率>60%，老城区管网密度不足
+#   - 高新区/经开区：新建区管网较好，但不透水面率高
+#   - 渭河平原低洼区：排水出口受河道水位顶托
+#   - 典型事件：2016年7月城区内涝（1h降雨46mm），2018年7月暴雨内涝
+#   - 关键控制因子：降雨强度+不透水面+管网密度+地形低洼
+# ----------------------------------------
+waterlogging:
+  type: conditional
+  parents: [rain_intensity, duration, accum_rain, elevation, landuse, impervious, soil_moisture, dist_to_river, pipe_density]
+  default_probability: 0.06
+  rules:
+    # === 极高风险（≥0.80）===
+    # 暴雨+高不透水面+管网不足：老城区典型内涝条件
+    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [high], pipe_density: [none, low]}
+      probability: 0.90
+    # 极端累计降雨+长历时+高不透水面：持续强降雨
+    - condition: {accum_rain: [heavy, extreme], duration: [long], impervious: [medium, high]}
+      probability: 0.82
+    # 极端累计+低洼区+管网不足：积水无处排出
+    - condition: {accum_rain: [heavy, extreme], elevation: [basin, plain_urban], pipe_density: [none, low]}
+      probability: 0.80
+
+    # === 高风险（0.55-0.75）===
+    # 暴雨+高不透水面
+    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [high]}
+      probability: 0.72
+    # 大雨+长历时+高不透水面
+    - condition: {rain_intensity: [heavy], duration: [long], impervious: [high]}
+      probability: 0.65
+    # 暴雨+城市用地+管网不足
+    - condition: {rain_intensity: [storm, downpour, extreme], landuse: [urban], pipe_density: [none, low]}
+      probability: 0.68
+    # 大雨+中高不透水面
+    - condition: {rain_intensity: [heavy, storm, downpour], impervious: [medium, high]}
+      probability: 0.60
+    # 极端累计+低洼区（不透水面不高也会积水）
+    - condition: {accum_rain: [extreme], elevation: [basin, plain_urban]}
+      probability: 0.58
+    # 饱和土壤+暴雨+低洼区：入渗饱和后地表积水
+    - condition: {soil_moisture: [saturated], rain_intensity: [heavy, storm, downpour, extreme], elevation: [basin, plain_urban]}
+      probability: 0.55
+
+    # === 中风险（0.25-0.45）===
+    # 大雨+中高不透水面
+    - condition: {rain_intensity: [moderate, heavy], impervious: [medium, high]}
+      probability: 0.40
+    # 中等累计+管网不足
+    - condition: {accum_rain: [moderate, heavy], pipe_density: [none, low], impervious: [medium]}
+      probability: 0.38
+    # 暴雨+低不透水面（非城区但排水不畅）
+    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [low]}
+      probability: 0.30
+    # 近河道+暴雨：排水出口受河道水位顶托
+    - condition: {dist_to_river: [very_close, close], rain_intensity: [heavy, storm, downpour, extreme], elevation: [basin, plain_urban]}
+      probability: 0.35
+    # 农田积水：低洼农田排水不畅
+    - condition: {landuse: [farmland], rain_intensity: [heavy, storm, downpour, extreme], elevation: [basin, plain_urban]}
+      probability: 0.30
+
+    # === 低风险兜底（≤0.05）===
+    # 老城区管网堵塞可在无雨时积水
+    - condition: {rain_intensity: [no_rain], pipe_density: [none, low], landuse: [urban]}
+      probability: 0.05
+    - condition: {rain_intensity: [no_rain, light]}
+      probability: 0.02
+    - condition: {impervious: [low], pipe_density: [medium, high]}
+      probability: 0.03
+
+# ----------------------------------------
+# 崩塌（Collapse）
+# 西安特征：
+#   - 黄土崩塌：渭河、灞河、浐河、沣河侧蚀黄土塬边，形成陡坎
+#   - 岩质崩塌：秦岭北坡陡崖（>45°），节理发育的花岗岩/变质岩
+#   - 工程崩塌：道路切坡、采石场边坡
+#   - 触发因素：降雨入渗软化+冻融风化+河流侧蚀
+#   - 断裂带控制：秦岭北缘断裂沿线岩体破碎，崩塌密度高
+# ----------------------------------------
+collapse:
+  type: conditional
+  parents: [rain_intensity, duration, slope, lithology, soil_moisture, dist_to_fault, dist_to_river]
+  default_probability: 0.02
+  rules:
+    # === 极高风险（≥0.70）===
+    # 暴雨+陡坡+松散岩性（黄土/碎屑岩）：黄土塬边崩塌
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], lithology: [terrigenous, unconsolidated, mixed_clastic]}
+      probability: 0.72
+    # 近河道+松散堆积物+陡坡：河流侧蚀致崩塌（渭河/灞河/浐河）
+    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.70
+
+    # === 高风险（0.50-0.65）===
+    # 暴雨+陡坡+断裂带附近：岩体破碎
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.65
+    # 暴雨+中陡坡+饱和：岩土体强度降低
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+      probability: 0.60
+    # 近河道+暴雨+中陡坡：岸坡浸泡+洪水冲刷
+    - condition: {dist_to_river: [very_close, close], rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep]}
+      probability: 0.58
+    # 暴雨+中陡坡
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep]}
+      probability: 0.50
+    # 长历时+大雨+陡坡+松散岩性：持续入渗软化
+    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], lithology: [terrigenous, unconsolidated, mixed_clastic]}
+      probability: 0.55
+
+    # === 中风险（0.20-0.40）===
+    # 近河道+缓坡+松散堆积物：侧蚀累积效应
+    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [moderate]}
+      probability: 0.35
+    # 大雨+中坡
+    - condition: {rain_intensity: [heavy], slope: [moderate, steep]}
+      probability: 0.30
+    # 断裂带+陡坡（无强降雨也有蠕变崩塌风险）
+    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.25
+    # 暴雨+缓坡+松散岩性
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [gentle, moderate], lithology: [unconsolidated]}
+      probability: 0.22
+
+    # === 低风险兜底（≤0.05）===
+    - condition: {rain_intensity: [no_rain, light]}
+      probability: 0.01
+    - condition: {slope: [flat, gentle]}
+      probability: 0.01

@@ -1,0 +1,168 @@
+# DBN 图结构配置
+# 定义节点、各层节点列表、父子关系
+
+# 推理配置
+inference_config:
+  match_strategy: first        # first=首条匹配（规则优先级从上到下），max=取最大概率
+  default_strategy: use_default  # 无规则匹配时使用 default_probability
+  max_cpt_parents: 20           # CPT 最大父节点数（超过则采用规则加权融合）
+
+layers:
+  # 触发层（3个节点）
+  trigger:
+    - rain_intensity      # 降雨强度
+    - duration            # 持续时间
+    - accum_rain          # 累计降雨量
+
+  # 环境层（16个节点）
+  environment:
+    - elevation           # 高程
+    - slope               # 坡度
+    - aspect              # 坡向
+    - soil_type           # 土壤分类
+    - lithology           # 岩性
+    - landuse             # 土地利用类型
+    - terrain             # 地形分类
+    - impervious          # 不透水面
+    - ndvi                # 植被指数
+    - sand_content        # 土壤含沙量
+    - ph                  # 土壤PH值（辅助因子，不入CPT）
+    - soil_moisture       # 土壤湿度
+    - organic_carbon      # 有机碳（辅助因子，不入CPT）
+    - dist_to_river       # 距离河道距离
+    - dist_to_fault       # 距离断裂带距离
+    - pipe_density        # 供水管网密度
+
+  # 灾害层（5个节点）
+  hazard:
+    - landslide           # 滑坡
+    - debris_flow         # 泥石流
+    - flash_flood         # 山洪
+    - waterlogging        # 内涝
+    - collapse            # 崩塌
+
+edges:
+  # 触发层 → 灾害层
+  # 降雨强度
+  - [rain_intensity, landslide]
+  - [rain_intensity, debris_flow]
+  - [rain_intensity, flash_flood]
+  - [rain_intensity, waterlogging]
+  - [rain_intensity, collapse]
+
+  # 持续时间
+  - [duration, landslide]
+  - [duration, debris_flow]
+  - [ duration, flash_flood ]
+  - [duration, waterlogging]
+  - [duration, collapse]
+
+  # 累计降雨量
+  - [accum_rain, landslide]
+  - [accum_rain, debris_flow]
+  - [accum_rain, flash_flood]
+  - [accum_rain, waterlogging]
+  - [accum_rain, collapse]
+
+  # 环境层 → 灾害层
+  # 高程影响山洪、内涝、泥石流
+  # - 山洪：高程影响汇流面积和河道坡降
+  # - 内涝：低洼处积水
+  # - 泥石流：高程反映沟道纵坡和物源区高差（秦岭北麓1000m+高发）
+  - [elevation, flash_flood]
+  - [elevation, waterlogging]
+  - [elevation, debris_flow]
+
+  # 坡度影响滑坡、泥石流、崩塌
+  - [slope, landslide]
+  - [slope, debris_flow]
+  - [slope, collapse]
+
+  # 坡向影响滑坡（阳坡冻融风化强烈）
+  - [aspect, landslide]
+
+  # 土壤类型影响滑坡、泥石流
+  - [soil_type, landslide]
+  - [soil_type, debris_flow]
+
+  # 岩性影响滑坡、泥石流、崩塌
+  - [lithology, landslide]
+  - [lithology, debris_flow]
+  - [lithology, collapse]
+
+  # 土地利用类型影响内涝、滑坡
+  # - 内涝：城市地表不透水
+  # - 滑坡：开挖坡脚/弃土加载/梯田改造
+  - [landuse, waterlogging]
+  - [landuse, landslide]
+
+  # 地形分类影响山洪、内涝
+  - [terrain, flash_flood]
+  - [terrain, waterlogging]
+
+  # 不透水面影响内涝
+  - [impervious, waterlogging]
+
+  # 植被指数影响滑坡、泥石流
+  - [ndvi, landslide]
+  - [ndvi, debris_flow]
+
+  # 土壤含沙量影响泥石流
+  - [sand_content, debris_flow]
+
+  # 土壤湿度影响滑坡、泥石流、内涝、山洪
+  # - 山洪：前期土壤湿度决定入渗率，饱和土壤几乎全部转为地表径流
+  - [soil_moisture, landslide]
+  - [soil_moisture, debris_flow]
+  - [soil_moisture, waterlogging]
+  - [soil_moisture, flash_flood]
+
+  # 距离河道距离影响山洪、泥石流、内涝、崩塌
+  # - 山洪：河道溢出 → [dist_to_river, flash_flood]
+  # - 泥石流：沟道物源供给 → [dist_to_river, debris_flow]
+  # - 内涝：排水出口受阻 → [dist_to_river, waterlogging]
+  # - 崩塌：河流侧蚀黄土塬边（渭河/灞河/浐河/沣河）→ [dist_to_river, collapse]
+  - [dist_to_river, flash_flood]
+  - [dist_to_river, debris_flow]
+  - [dist_to_river, waterlogging]
+  - [dist_to_river, collapse]
+
+  # 距离断裂带距离影响滑坡、崩塌、泥石流
+  - [dist_to_fault, landslide]
+  - [dist_to_fault, collapse]
+  - [dist_to_fault, debris_flow]
+
+  # 供水管网密度影响内涝
+  - [pipe_density, waterlogging]
+
+# 节点状态定义（与 discretization.yaml 保持一致）
+node_states:
+  # 触发层
+  rain_intensity: [no_rain, light, moderate, heavy, storm, downpour, extreme]
+  duration: [short, medium, long]
+  accum_rain: [trace, light, moderate, heavy, extreme]
+
+  # 环境层（离散字段状态名与数据库编码一一对应，连续字段用工程分级）
+  elevation: [basin, plain_urban, transition, low_mountain, mid_mountain, high_mountain]
+  slope: [flat, gentle, moderate, steep, very_steep, extreme_steep]
+  aspect: [north, east, south, west, north_loop]
+  soil_type: [ultisol, entisol, fluvo_aquic, yellow_brown]
+  lithology: [acid_rock, basic_rock, carbonate, metamorphic, mixed_clastic, terrigenous, unconsolidated]
+  landuse: [forest, farmland, urban, water, barren]
+  terrain: [mountain, plain, deep_valley, hill, gentle_hill, low_mountain, flat_plain]
+  impervious: [low, medium, high]
+  ndvi: [water, bare, sparse, moderate, dense, very_dense]
+  sand_content: [low, medium, high]
+  ph: [acidic, neutral, alkaline]
+  soil_moisture: [dry, moist, wet, saturated]
+  organic_carbon: [low, medium, high]
+  dist_to_river: [very_close, close, moderate, far]
+  dist_to_fault: [very_close, close, moderate, far]
+  pipe_density: [none, low, medium, high]
+
+  # 灾害层
+  landslide: [none, low, medium, high, very_high]
+  debris_flow: [none, low, medium, high, very_high]
+  flash_flood: [none, low, medium, high, very_high]
+  waterlogging: [none, low, medium, high, very_high]
+  collapse: [none, low, medium, high, very_high]

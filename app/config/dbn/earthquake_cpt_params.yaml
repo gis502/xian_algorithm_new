@@ -1,0 +1,266 @@
+# ================================================================
+# 地震灾害链 条件概率表（CPT）配置
+# ================================================================
+# 地震触发地质灾害：滑坡、泥石流、崩塌
+# 参考：
+#   - Keefer (1984) Landslides caused by earthquakes
+#   - Rodriguez et al. (1999) Earthquake-induced landslides
+#   - 1556年华县M8.0地震诱发滑坡史料
+#   - GB 18306-2015 中国地震动参数区划图
+
+# 推理配置
+match_strategy: first
+default_strategy: use_default
+
+# ============================================
+# 触发层（地震参数先验概率）
+# ============================================
+# 主要发震构造：秦岭北缘断裂（M7.0+）、渭河断裂（M6.5+）
+# 历史最大地震：1556年华县M8.0（距西安约80km）
+
+magnitude:
+  type: prior
+  # 西安地区地震危险性分析：
+  # - M<4.0（minor）：频繁但无显著地质灾害
+  # - M4.0-4.9（light）：偶发，轻微地质灾害
+  # - M5.0-5.9（moderate）：可能触发近场滑坡
+  # - M6.0-6.9（strong）：显著地质灾害
+  # - M7.0-7.9（major）：区域性地质灾害
+  # - M≥8.0（great）：灾难性（如1556年华县地震）
+  # [minor, light, moderate, strong, major, great]
+  probabilities: [0.40, 0.25, 0.18, 0.10, 0.05, 0.02]
+
+epicenter_distance:
+  type: prior
+  # 西安地区可能的震中距分布：
+  # - <30km（very_near）：本地断裂发震
+  # - 30-100km（near）：渭河断裂、秦岭北缘断裂
+  # - 100-300km（moderate）：汾渭地震带
+  # - >300km（far）：远场地震
+  # [very_near, near, moderate, far]
+  probabilities: [0.10, 0.25, 0.35, 0.30]
+
+seismic_intensity:
+  type: prior
+  # 西安地区地震烈度分布：
+  # - I-V（minor）：无显著地质灾害
+  # - VI-VII（light）：轻微地质灾害
+  # - VIII-IX（moderate）：显著地质灾害
+  # - X-XII（severe）：严重地质灾害
+  # > XII（extreme）：灾难性（1556年华县地震西安烈度约IX-X）
+  # [minor, light, moderate, severe, extreme]
+  probabilities: [0.35, 0.30, 0.20, 0.10, 0.05]
+
+# ============================================
+# 灾害层（条件概率）
+# 规则匹配策略：首条匹配，从上到下扫描，命中即返回
+# 高风险规则在前，低风险兜底规则在后
+# ============================================
+
+# ----------------------------------------
+# 滑坡（Landslide）- 地震触发
+# 西安特征：
+#   - 黄土滑坡：黄土台塬塬边（白鹿塬、神禾塬、少陵塬），地震时黄土震陷
+#   - 岩质滑坡：秦岭北坡变质岩/花岗岩区，节理面在地震荷载下失稳
+#   - 工程滑坡：城区开挖坡脚，地震加剧变形
+#   - 断裂带控制：秦岭北缘断裂沿线近场效应显著
+#   - 1556年华县地震：触发了渭河平原大规模黄土滑坡
+# ----------------------------------------
+landslide:
+  type: conditional
+  parents: [magnitude, epicenter_distance, slope, lithology, soil_moisture, dist_to_fault, ndvi, soil_type, landuse, terrain]
+  default_probability: 0.02
+  rules:
+    # === 极高风险（≥0.70）===
+    # 大地震+近场+陡坡：最大规模地震滑坡
+    # 参考：M7.0+近场（<30km）陡坡区滑坡概率>80%（Keefer 1984）
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.85
+    # 大地震+近场+饱和土体：黄土震陷+液化
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near], soil_moisture: [wet, saturated]}
+      probability: 0.82
+    # 强震+近场+陡坡+断裂带附近：近场效应+岩体破碎
+    - condition: {magnitude: [strong, major, great], epicenter_distance: [very_near], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.80
+    # 大地震+近场+松散堆积物：黄土滑坡（1556年华县地震典型场景）
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near, near], lithology: [unconsolidated, mixed_clastic]}
+      probability: 0.78
+
+    # === 高风险（0.50-0.65）===
+    # 强震+近场+陡坡
+    - condition: {magnitude: [strong, major], epicenter_distance: [very_near, near], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.65
+    # 大地震+中距+陡坡+断裂带
+    - condition: {magnitude: [major, great], epicenter_distance: [near, moderate], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.62
+    # 强震+中陡坡+松散堆积物：黄土塬边滑坡
+    - condition: {magnitude: [strong, major], epicenter_distance: [very_near, near], slope: [moderate, steep, very_steep, extreme_steep], lithology: [unconsolidated]}
+      probability: 0.60
+    # 强震+陡坡+饱和土体
+    - condition: {magnitude: [strong, major], slope: [steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+      probability: 0.58
+    # 大地震+近场+丘陵地形：黄土塬边
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near, near], terrain: [hill, gentle_hill]}
+      probability: 0.55
+    # 强震+近场+初育土（黄土）
+    - condition: {magnitude: [strong, major], epicenter_distance: [very_near, near], soil_type: [entisol]}
+      probability: 0.52
+
+    # === 中风险（0.20-0.40）===
+    # 中强震+近场+陡坡
+    - condition: {magnitude: [moderate, strong], epicenter_distance: [very_near, near], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.40
+    # 强震+中距+陡坡
+    - condition: {magnitude: [strong, major], epicenter_distance: [near, moderate], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.35
+    # 强震+中坡+松散堆积物
+    - condition: {magnitude: [strong, major], slope: [moderate, steep], lithology: [unconsolidated]}
+      probability: 0.30
+    # 大地震+远距（仍有影响，1556年华县地震影响范围>300km）
+    - condition: {magnitude: [major, great], epicenter_distance: [moderate, far], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.28
+    # 断裂带+陡坡（即使中小地震也有蠕变风险）
+    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.25
+    # 中强震+中坡
+    - condition: {magnitude: [moderate, strong], slope: [moderate, steep]}
+      probability: 0.22
+
+    # === 低风险兜底（≤0.05）===
+    - condition: {magnitude: [minor]}
+      probability: 0.02
+    - condition: {epicenter_distance: [far]}
+      probability: 0.02
+    - condition: {slope: [flat, gentle]}
+      probability: 0.01
+
+# ----------------------------------------
+# 泥石流（Debris Flow）- 地震触发
+# 西安特征：
+#   - 秦岭北麓沟道：地震松动物源→后续降雨触发泥石流
+#   - 地震直接触发：强震+陡坡+松散物源可直接启动泥石流
+#   - 震后效应：地震后数年内泥石流频率显著增加（物源松动）
+#   - 典型场景：M6.0+秦岭北坡沟道区
+# ----------------------------------------
+debris_flow:
+  type: conditional
+  parents: [magnitude, epicenter_distance, slope, elevation, lithology, sand_content, soil_moisture, dist_to_fault, ndvi]
+  default_probability: 0.01
+  rules:
+    # === 极高风险（≥0.70）===
+    # 大地震+近场+陡坡+高含沙量：物源充足+强震动
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near], slope: [steep, very_steep, extreme_steep], sand_content: [medium, high]}
+      probability: 0.80
+    # 大地震+近场+中高山区+松散堆积物：秦岭北麓沟道
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near, near], elevation: [mid_mountain, high_mountain], lithology: [unconsolidated, mixed_clastic]}
+      probability: 0.78
+    # 强震+近场+陡坡+断裂带：破碎岩体提供物源
+    - condition: {magnitude: [strong, major, great], epicenter_distance: [very_near], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.75
+    # 大地震+饱和+陡坡：液化+滑坡→泥石流
+    - condition: {magnitude: [major, great], soil_moisture: [wet, saturated], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.72
+
+    # === 高风险（0.50-0.65）===
+    # 强震+近场+陡坡
+    - condition: {magnitude: [strong, major], epicenter_distance: [very_near, near], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.62
+    # 强震+中高山区+松散堆积物
+    - condition: {magnitude: [strong, major], elevation: [mid_mountain, high_mountain], lithology: [unconsolidated, mixed_clastic]}
+      probability: 0.58
+    # 大地震+中距+陡坡+高含沙量
+    - condition: {magnitude: [major, great], epicenter_distance: [near, moderate], slope: [steep, very_steep, extreme_steep], sand_content: [medium, high]}
+      probability: 0.55
+    # 强震+陡坡+松散堆积物
+    - condition: {magnitude: [strong, major], slope: [steep, very_steep, extreme_steep], lithology: [unconsolidated, mixed_clastic]}
+      probability: 0.52
+
+    # === 中风险（0.20-0.40）===
+    # 中强震+近场+陡坡
+    - condition: {magnitude: [moderate, strong], epicenter_distance: [very_near, near], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.38
+    # 强震+中高山区（物源区本身不稳定）
+    - condition: {magnitude: [strong, major], elevation: [mid_mountain, high_mountain], slope: [moderate, steep]}
+      probability: 0.30
+    # 大地震+远距+陡坡
+    - condition: {magnitude: [major, great], epicenter_distance: [moderate, far], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.28
+    # 断裂带+陡坡+松散堆积物（无强震也有蠕变崩塌→物源积累）
+    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep], lithology: [unconsolidated]}
+      probability: 0.22
+
+    # === 低风险兜底（≤0.05）===
+    - condition: {magnitude: [minor]}
+      probability: 0.01
+    - condition: {slope: [flat, gentle]}
+      probability: 0.01
+    - condition: {elevation: [basin, plain_urban]}
+      probability: 0.01
+
+# ----------------------------------------
+# 崩塌（Collapse）- 地震触发
+# 西安特征：
+#   - 黄土崩塌：渭河、灞河、浐河侧蚀黄土塬边+地震触发
+#   - 岩质崩塌：秦岭北坡陡崖（>45°），花岗岩/变质岩节理面失稳
+#   - 崩塌是地震触发最敏感的地质灾害类型
+#   - 1556年华县地震：秦岭北坡大规模崩塌
+#   - 断裂带控制：秦岭北缘断裂沿线崩塌密度最高
+# ----------------------------------------
+collapse:
+  type: conditional
+  parents: [magnitude, epicenter_distance, slope, lithology, dist_to_fault, dist_to_river, soil_moisture]
+  default_probability: 0.02
+  rules:
+    # === 极高风险（≥0.70）===
+    # 大地震+近场+极陡坡+硬岩（花岗岩/变质岩）：节理面失稳
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near], slope: [very_steep, extreme_steep], lithology: [acid_rock, metamorphic, basic_rock]}
+      probability: 0.88
+    # 大地震+近场+陡坡+断裂带：岩体极度破碎
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.85
+    # 大地震+近场+松散堆积物+陡坡：黄土塬边崩塌
+    - condition: {magnitude: [major, great], epicenter_distance: [very_near], slope: [steep, very_steep, extreme_steep], lithology: [unconsolidated, terrigenous, mixed_clastic]}
+      probability: 0.80
+    # 强震+近场+极陡坡
+    - condition: {magnitude: [strong, major], epicenter_distance: [very_near], slope: [very_steep, extreme_steep]}
+      probability: 0.75
+
+    # === 高风险（0.50-0.65）===
+    # 强震+近场+陡坡+断裂带
+    - condition: {magnitude: [strong, major], epicenter_distance: [very_near, near], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.68
+    # 大地震+中距+陡坡+硬岩
+    - condition: {magnitude: [major, great], epicenter_distance: [near, moderate], slope: [steep, very_steep, extreme_steep], lithology: [acid_rock, metamorphic]}
+      probability: 0.62
+    # 强震+近场+陡坡+松散堆积物：黄土崩塌
+    - condition: {magnitude: [strong, major], epicenter_distance: [very_near, near], slope: [steep, very_steep, extreme_steep], lithology: [unconsolidated]}
+      probability: 0.60
+    # 近河道+陡坡+松散堆积物+地震：河流侧蚀+地震触发
+    - condition: {dist_to_river: [very_close, close], slope: [steep, very_steep, extreme_steep], lithology: [unconsolidated], magnitude: [strong, major, great]}
+      probability: 0.58
+    # 强震+中陡坡+断裂带
+    - condition: {magnitude: [strong, major], slope: [moderate, steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+      probability: 0.55
+
+    # === 中风险（0.20-0.40）===
+    # 中强震+近场+陡坡
+    - condition: {magnitude: [moderate, strong], epicenter_distance: [very_near, near], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.40
+    # 强震+中距+陡坡
+    - condition: {magnitude: [strong, major], epicenter_distance: [near, moderate], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.35
+    # 近河道+中坡+松散堆积物（无强震也有侧蚀崩塌）
+    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [moderate, steep]}
+      probability: 0.30
+    # 断裂带+陡坡（无强震也有蠕变崩塌）
+    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.28
+    # 大地震+远距+陡坡
+    - condition: {magnitude: [major, great], epicenter_distance: [moderate, far], slope: [steep, very_steep, extreme_steep]}
+      probability: 0.25
+
+    # === 低风险兜底（≤0.05）===
+    - condition: {magnitude: [minor]}
+      probability: 0.01
+    - condition: {slope: [flat, gentle]}
+      probability: 0.01
