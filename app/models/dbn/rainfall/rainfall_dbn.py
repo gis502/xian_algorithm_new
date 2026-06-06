@@ -234,7 +234,7 @@ class RainfallDBN:
         lat = point.get('lat')
         source_type = point.get('source_type')
 
-        logger.info(f"预测点 ID={point_id}, source_type={source_type}")
+        logger.debug(f"预测点 ID={point_id}, source_type={source_type}")
 
         # 获取降雨数据
         if rainfall is not None and duration is not None:

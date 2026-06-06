@@ -218,7 +218,7 @@ class EarthquakeDBN:
         lat = point.get('lat')
         source_type = point.get('source_type')
 
-        logger.info(f"地震预测点 ID={point_id}, source_type={source_type}")
+        logger.debug(f"地震预测点 ID={point_id}, source_type={source_type}")
 
         # 计算震中距（如果未直接提供）
         if epicenter_distance is None:
@@ -226,7 +226,6 @@ class EarthquakeDBN:
                 epicenter_distance = self._haversine_distance(
                     lon, lat, epicenter_lon, epicenter_lat
                 )
-                logger.info(f"计算震中距: {epicenter_distance:.1f} km")
             else:
                 logger.warning("未提供震中距或震中坐标，使用默认值 100km")
                 epicenter_distance = 100.0
@@ -234,7 +233,6 @@ class EarthquakeDBN:
         # 估算地震烈度（如果未直接提供）
         if seismic_intensity is None:
             seismic_intensity = self.estimate_seismic_intensity(magnitude, epicenter_distance, depth)
-            logger.info(f"估算地震烈度: {seismic_intensity:.1f}")
 
         # 获取静态因子数据
         raw_factors = point.get('static_factors', {})

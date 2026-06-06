@@ -1,8 +1,9 @@
 """
 PostgreSQL 数据库工具类
-提供增删改查方法
+提供增删改查方法，内置连接池
 """
 import psycopg2
+from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 from typing import List, Dict, Any, Optional, Tuple
 from contextlib import contextmanager
@@ -10,10 +11,10 @@ from config import settings
 
 
 class PostgresSQLHelper:
-    """PostgreSQL 数据库帮助类"""
-    
+    """PostgreSQL 数据库帮助类（连接池版）"""
+
     def __init__(self):
-        """初始化数据库连接配置"""
+        """初始化数据库连接池"""
         self.db_config = {
             'host': settings.DB_HOST,
             'port': settings.DB_PORT,
@@ -21,31 +22,38 @@ class PostgresSQLHelper:
             'password': settings.DB_PASSWORD,
             'database': settings.DB_NAME,
         }
-    
+        self._pool = None
+
+    def _ensure_pool(self):
+        """延迟初始化连接池"""
+        if self._pool is None:
+            self._pool = pool.ThreadedConnectionPool(
+                minconn=2,
+                maxconn=20,
+                **self.db_config
+            )
+
     @contextmanager
     def get_connection(self):
         """
-        获取数据库连接的上下文管理器
-        自动管理连接的开启和关闭
+        从连接池获取连接（复用TCP连接，省去握手开销）
         """
-        conn = None
+        self._ensure_pool()
+        conn = self._pool.getconn()
         try:
-            conn = psycopg2.connect(**self.db_config)
             yield conn
             conn.commit()
         except Exception as e:
-            if conn:
-                conn.rollback()
+            conn.rollback()
             raise e
         finally:
-            if conn:
-                conn.close()
-    
+            self._pool.putconn(conn)
+
     @contextmanager
     def get_cursor(self, dict_cursor=False):
         """
         获取数据库游标的上下文管理器
-        
+
         Args:
             dict_cursor: 是否使用字典游标（返回字典格式结果）
         """
