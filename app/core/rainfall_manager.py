@@ -86,10 +86,10 @@ class RainfallManager:
             query_time: 查询时间
             max_id: 最大ID
         """
-        from app.repositories.rainfall_repository import rainfall_repository
-        from app.services.rainfall_grid_service import rainfall_grid_service
-
         try:
+            from app.repositories.rainfall_repository import rainfall_repository
+            from app.services.rainfall_grid_service import rainfall_grid_service
+
             self.logger.info(f"开始生成降雨栅格，查询时间: {query_time}, ID: {max_id}")
 
             # 1. 查询雨量站点数据

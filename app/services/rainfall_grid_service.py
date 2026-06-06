@@ -368,8 +368,9 @@ class RainfallGridService:
             
             # 返回相对路径（相对于FILE_STORE_DIR），统一使用正斜杠
             relative_path = os.path.join(grid_dir, 'grid.png').replace('\\', '/')
-            
-            self.logger.info(f"PNG图片已保存: {png_path.replace('\\', '/')}")
+            saved_path = png_path.replace('\\', '/')
+
+            self.logger.info(f"PNG图片已保存: {saved_path}")
             return relative_path
             
         except Exception as e:
