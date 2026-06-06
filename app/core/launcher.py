@@ -37,6 +37,32 @@ class AppLauncher:
             # 检查安装依赖
             check_dependencies(self.project_root)
 
+            # 检查是否正在使用虚拟环境运行
+            import platform
+            import sys
+            venv_path = self.project_root / ".venv"
+            os_name = platform.system()
+            
+            if os_name == 'Windows':
+                venv_python = venv_path / "Scripts" / "python.exe"
+            else:  # Linux/Mac
+                venv_python = venv_path / "bin" / "python3"
+            
+            # 如果当前不是使用虚拟环境的Python，则重新启动
+            current_python = Path(sys.executable).resolve()
+            venv_python_resolved = venv_python.resolve()
+            
+            if current_python != venv_python_resolved:
+                print("\n" + "=" * 50)
+                print("检测到未使用虚拟环境，正在切换到虚拟环境...")
+                print("=" * 50)
+                
+                # 使用虚拟环境的Python重新启动应用
+                import subprocess
+                cmd = [str(venv_python)] + sys.argv
+                subprocess.run(cmd, check=True)
+                return
+
             # 启动应用
             print("\n" + "=" * 50)
             print("✓ 所有检查通过，准备启动应用...")

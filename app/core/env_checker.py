@@ -29,12 +29,12 @@ def check_environment():
     # 解析版本号
     major, minor, *_ = map(int, python_version.split('.'))
     
-    if major == 3 and minor == 13:
+    if major == 3 and minor == 10:
         return True
     else:
         print(f"✗ Python版本不符合要求！")
         print(f"  当前版本: {python_version}")
-        print(f"  要求版本: 3.13.x")
-        print(f"\n请使用 Python 3.13 版本运行此项目")
+        print(f"  要求版本: 3.10.x")
+        print(f"\n请使用 Python 3.10 版本运行此项目")
         print(f"下载地址: https://www.python.org/downloads/")
         return False
