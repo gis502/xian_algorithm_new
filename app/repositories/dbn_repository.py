@@ -314,6 +314,134 @@ class DbnRepository:
             'rain_intensity': rain_intensity
         }
 
+    # ---- 批量降雨查询（性能优化） ----
+
+    _cached_stations: Optional[List[Dict[str, Any]]] = None
+
+    @classmethod
+    def _ensure_stations_cached(cls) -> List[Dict[str, Any]]:
+        """一次性加载所有气象站点坐标到内存（188个站点，约2KB）"""
+        if cls._cached_stations is not None:
+            return cls._cached_stations
+        sql = "SELECT DISTINCT lon, lat FROM xian_meteorology"
+        cls._cached_stations = db_helper.execute_query(sql)
+        logger.info(f"已缓存 {len(cls._cached_stations)} 个气象站点坐标")
+        return cls._cached_stations
+
+    @staticmethod
+    def _haversine_distance(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
+        """Haversine公式计算两点间距离（米）"""
+        R = 6371000
+        phi1, phi2 = math.radians(lat1), math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlam = math.radians(lon2 - lon1)
+        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    @classmethod
+    def _find_nearest_station(cls, lon: float, lat: float) -> Optional[Dict[str, Any]]:
+        """在缓存的站点中找最近的一个（纯Python，微秒级）"""
+        stations = cls._ensure_stations_cached()
+        if not stations:
+            return None
+        best = None
+        best_dist = float('inf')
+        for s in stations:
+            d = cls._haversine_distance(lon, lat, s['lon'], s['lat'])
+            if d < best_dist:
+                best_dist = d
+                best = s
+        if best_dist > 50000:
+            return None
+        return {'lon': best['lon'], 'lat': best['lat'], 'dist': best_dist}
+
+    @classmethod
+    def get_rainfall_data_batch(cls, points: List[Dict[str, Any]],
+                                query_time: Optional[datetime] = None) -> Dict[str, Dict[str, Any]]:
+        """
+        批量获取多个点的降雨数据（2次DB查询替代 N×2次）
+
+        Args:
+            points: 预测点列表，每个含 {'id': str, 'lon': float, 'lat': float}
+            query_time: 查询时间
+
+        Returns:
+            {point_id: {accum_rain, duration_hours, rain_intensity}}
+        """
+        if query_time is None:
+            query_time = datetime.now()
+
+        # 结果模板（无数据时的默认值）
+        default = {'accum_rain': 0.0, 'duration_hours': 0, 'rain_intensity': 0.0}
+        result: Dict[str, Dict[str, Any]] = {}
+
+        # 1. 为每个点找最近站点（纯Python，瞬间完成）
+        station_to_points: Dict[tuple, List[str]] = {}
+        for p in points:
+            station = cls._find_nearest_station(p['lon'], p['lat'])
+            if station is None:
+                result[p['id']] = default.copy()
+                continue
+            key = (station['lon'], station['lat'])
+            station_to_points.setdefault(key, []).append(p['id'])
+
+        if not station_to_points:
+            return result
+
+        # 2. 一次批量查所有站点的72小时降雨数据
+        station_keys = list(station_to_points.keys())
+        placeholders = ', '.join(['(%s, %s)'] * len(station_keys))
+        params: List[Any] = []
+        for slon, slat in station_keys:
+            params.extend([slon, slat])
+        params.extend([query_time, query_time])
+
+        # noinspection SqlNoDataSourceInspection
+        sql = f"""
+            SELECT lon, lat, datetime, CAST(rainfall_1h AS DOUBLE PRECISION) as rainfall
+            FROM xian_meteorology
+            WHERE (lon, lat) IN ({placeholders})
+            AND datetime BETWEEN
+                CAST(EXTRACT(EPOCH FROM (%s::timestamp - INTERVAL '72 hours')) AS BIGINT)
+                AND CAST(EXTRACT(EPOCH FROM %s::timestamp) AS BIGINT)
+            ORDER BY lon, lat, datetime DESC
+        """
+        rows = db_helper.execute_query(sql, tuple(params))
+
+        # 3. 按站点分组，计算累计降雨量和持续时间
+        from itertools import groupby
+        station_rainfall: Dict[tuple, Dict[str, Any]] = {}
+        for (slon, slat), group in groupby(rows, key=lambda r: (r['lon'], r['lat'])):
+            accum_rain = 0.0
+            duration_hours = 0
+            consecutive_no_rain = 0
+            for row in group:
+                rainfall = float(row['rainfall']) if row['rainfall'] else 0.0
+                if rainfall > 0:
+                    accum_rain += rainfall
+                    duration_hours += 1
+                    consecutive_no_rain = 0
+                else:
+                    consecutive_no_rain += 1
+                    if consecutive_no_rain >= 3:
+                        break
+                    if accum_rain > 0:
+                        duration_hours += 1
+            intensity = accum_rain / duration_hours if duration_hours > 0 else 0.0
+            station_rainfall[(slon, slat)] = {
+                'accum_rain': accum_rain,
+                'duration_hours': duration_hours,
+                'rain_intensity': intensity
+            }
+
+        # 4. 分发给各预测点
+        for (slon, slat), point_ids in station_to_points.items():
+            rain_data = station_rainfall.get((slon, slat), default)
+            for pid in point_ids:
+                result[pid] = rain_data
+
+        return result
+
     # ==================== 空间查询 ====================
 
     @staticmethod

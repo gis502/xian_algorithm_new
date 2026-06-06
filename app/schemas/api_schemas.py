@@ -14,8 +14,10 @@ class RainfallPredictRequest(BaseModel):
     point_ids: Optional[List[int]] = Field(None, max_length=500,
                                            description="点位ID列表，不传则查询所有点")
     region_code: Optional[str] = Field(None, description="行政区划代码（如 '610104'），不传则不限区域")
-    rainfall: float = Field(..., ge=0, description="累计降雨量(mm)")
-    duration: float = Field(..., ge=0, description="降雨持续时间(h)")
+    rainfall: Optional[float] = Field(None, ge=0,
+                                       description="累计降雨量(mm)，不传则从气象表自动获取")
+    duration: Optional[float] = Field(None, ge=0,
+                                       description="降雨持续时间(h)，不传则从气象表自动获取")
 
 
 # ============================================================
