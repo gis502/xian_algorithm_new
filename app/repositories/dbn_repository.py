@@ -702,7 +702,7 @@ class DbnRepository:
         """
         import json
         sql = """
-            INSERT INTO inference_result (event_type, occurred_time, operation_type, condition, result)
+            INSERT INTO xian_inference_result (event_type, occurred_time, operation_type, condition, result)
             VALUES (%s, %s, %s, %s::jsonb, %s::jsonb)
             RETURNING id
         """
