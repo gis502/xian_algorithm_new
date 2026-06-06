@@ -684,6 +684,37 @@ class DbnRepository:
             return float(result['aspect'])
         return None
 
+    @staticmethod
+    def save_inference_result(event_type: str, occurred_time, operation_type: str,
+                              condition: dict, result: list) -> int:
+        """
+        保存推理结果到 inference_result 表
+
+        Args:
+            event_type: 事件类型（'rainfall' 或 'earthquake'）
+            occurred_time: 事件发生时间
+            operation_type: 操作类型
+            condition: 输入条件（JSON）
+            result: 预测结果列表（JSON）
+
+        Returns:
+            新插入记录的 ID
+        """
+        import json
+        sql = """
+            INSERT INTO inference_result (event_type, occurred_time, operation_type, condition, result)
+            VALUES (%s, %s, %s, %s::jsonb, %s::jsonb)
+            RETURNING id
+        """
+        row = db_helper.execute_query_one(sql, (
+            event_type,
+            occurred_time,
+            operation_type,
+            json.dumps(condition, ensure_ascii=False),
+            json.dumps(result, ensure_ascii=False)
+        ))
+        return row['id'] if row else 0
+
 
 # 创建全局实例
 dbn_repository = DbnRepository()

@@ -1,6 +1,7 @@
 """
 API 请求/响应数据模型
 """
+from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -18,6 +19,8 @@ class RainfallPredictRequest(BaseModel):
                                        description="累计降雨量(mm)，不传则从气象表自动获取")
     duration: Optional[float] = Field(None, ge=0,
                                        description="降雨持续时间(h)，不传则从气象表自动获取")
+    operation_type: str = Field("模拟", min_length=1, max_length=50,
+                                description="操作类型（如 '模拟', '实时监测', '应急评估'）")
 
 
 # ============================================================
@@ -33,6 +36,9 @@ class EarthquakePredictRequest(BaseModel):
     depth: float = Field(10.0, gt=0, le=700, description="震源深度(km)，默认10km")
     epicenter_lon: float = Field(..., ge=-180, le=180, description="震中经度")
     epicenter_lat: float = Field(..., ge=-90, le=90, description="震中纬度")
+    occurred_time: datetime = Field(..., description="地震发生时间")
+    operation_type: str = Field("模拟", min_length=1, max_length=50,
+                                description="操作类型（如 '模拟', '实时监测', '应急评估'）")
 
 
 # ============================================================
@@ -52,6 +58,7 @@ class PredictResponse(BaseModel):
     code: int = Field(200, description="状态码")
     message: str = Field("success", description="提示信息")
     data: List[PredictionItem] = Field(default_factory=list, description="预测结果列表")
+    record_id: Optional[int] = Field(None, description="推理结果记录ID")
 
 
 class HealthResponse(BaseModel):

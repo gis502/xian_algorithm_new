@@ -2,6 +2,7 @@
 暴雨灾害链预测接口
 """
 import asyncio
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -46,15 +47,43 @@ def _fetch_points(point_ids: Optional[List[int]], region_code: Optional[str]) ->
 
 
 def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
-                  rainfall: float, duration: float) -> List[PredictionItem]:
-    """同步执行暴雨预测（在线程池中运行）"""
+                  rainfall: Optional[float], duration: Optional[float],
+                  operation_type: str) -> tuple:
+    """
+    同步执行暴雨预测（在线程池中运行）
+
+    Returns:
+        (预测结果列表, 原始结果, 输入条件, 当前时间)
+    """
     points = _fetch_points(point_ids, region_code)
     if not points:
-        return []
+        return [], [], {}, datetime.now()
 
     model = get_rainfall_model()
-    results = model.predict_multiple_points(points, rainfall=rainfall, duration=duration)
-    return _build_prediction_items(results)
+    raw_results = model.predict_multiple_points(points, rainfall=rainfall, duration=duration)
+    items = _build_prediction_items(raw_results)
+
+    # 构建条件和结果用于保存
+    now = datetime.now()
+    condition = {
+        "point_ids": point_ids,
+        "region_code": region_code,
+        "rainfall": rainfall,
+        "duration": duration
+    }
+    save_results = [
+        {
+            "point_id": r.get("point_id"),
+            "source_type": r.get("source_type"),
+            "lon": r.get("lon"),
+            "lat": r.get("lat"),
+            "disaster_probabilities": r.get("disaster_probabilities", {}),
+            "disaster_levels": r.get("disaster_levels", {})
+        }
+        for r in raw_results
+    ]
+
+    return items, save_results, condition, now
 
 
 @router.post("/predict", response_model=PredictResponse, summary="暴雨灾害链预测")
@@ -64,20 +93,36 @@ async def predict_rainfall(req: RainfallPredictRequest):
 
     - **point_ids**: 点位ID列表（可选，不传则查询所有点）
     - **region_code**: 行政区划代码（可选，不传则不限区域）
-    - **rainfall**: 累计降雨量(mm)
-    - **duration**: 降雨持续时间(h)
+    - **rainfall**: 累计降雨量(mm)，不传则从气象表自动获取
+    - **duration**: 降雨持续时间(h)，不传则从气象表自动获取
+    - **operation_type**: 操作类型（如 '实时监测', '情景模拟', '应急评估'）
     """
     semaphore = get_prediction_semaphore()
 
     async with semaphore:
         loop = asyncio.get_event_loop()
         try:
-            items = await loop.run_in_executor(
+            items, save_results, condition, now = await loop.run_in_executor(
                 None, _predict_sync, req.point_ids, req.region_code,
-                req.rainfall, req.duration
+                req.rainfall, req.duration, req.operation_type
             )
         except Exception as e:
             logger.error(f"暴雨预测失败: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"预测失败: {e}")
 
-    return PredictResponse(code=200, message="success", data=items)
+    # 保存推理结果
+    record_id = None
+    if save_results:
+        try:
+            record_id = dbn_repository.save_inference_result(
+                event_type="rainfall",
+                occurred_time=now,
+                operation_type=req.operation_type,
+                condition=condition,
+                result=save_results
+            )
+            logger.info(f"推理结果已保存，record_id={record_id}")
+        except Exception as e:
+            logger.error(f"保存推理结果失败: {e}", exc_info=True)
+
+    return PredictResponse(code=200, message="success", data=items, record_id=record_id)

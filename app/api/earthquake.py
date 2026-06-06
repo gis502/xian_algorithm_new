@@ -47,21 +47,40 @@ def _fetch_points(point_ids: Optional[List[int]], region_code: Optional[str]) ->
 
 def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
                   magnitude: float, depth: float,
-                  epicenter_lon: float, epicenter_lat: float) -> List[PredictionItem]:
-    """同步执行地震预测（在线程池中运行）"""
+                  epicenter_lon: float, epicenter_lat: float) -> tuple:
+    """
+    同步执行地震预测（在线程池中运行）
+
+    Returns:
+        (预测结果列表, 原始结果)
+    """
     points = _fetch_points(point_ids, region_code)
     if not points:
-        return []
+        return [], []
 
     model = get_earthquake_model()
-    results = model.predict_multiple_points(
+    raw_results = model.predict_multiple_points(
         points,
         magnitude=magnitude,
         depth=depth,
         epicenter_lon=epicenter_lon,
         epicenter_lat=epicenter_lat,
     )
-    return _build_prediction_items(results)
+    items = _build_prediction_items(raw_results)
+
+    save_results = [
+        {
+            "point_id": r.get("point_id"),
+            "source_type": r.get("source_type"),
+            "lon": r.get("lon"),
+            "lat": r.get("lat"),
+            "disaster_probabilities": r.get("disaster_probabilities", {}),
+            "disaster_levels": r.get("disaster_levels", {})
+        }
+        for r in raw_results
+    ]
+
+    return items, save_results
 
 
 @router.post("/predict", response_model=PredictResponse, summary="地震灾害链预测")
@@ -75,13 +94,15 @@ async def predict_earthquake(req: EarthquakePredictRequest):
     - **depth**: 震源深度(km)，默认10km
     - **epicenter_lon**: 震中经度
     - **epicenter_lat**: 震中纬度
+    - **occurred_time**: 地震发生时间
+    - **operation_type**: 操作类型（如 '实时监测', '情景模拟', '应急评估'）
     """
     semaphore = get_prediction_semaphore()
 
     async with semaphore:
         loop = asyncio.get_event_loop()
         try:
-            items = await loop.run_in_executor(
+            items, save_results = await loop.run_in_executor(
                 None, _predict_sync, req.point_ids, req.region_code,
                 req.magnitude, req.depth, req.epicenter_lon, req.epicenter_lat
             )
@@ -89,4 +110,27 @@ async def predict_earthquake(req: EarthquakePredictRequest):
             logger.error(f"地震预测失败: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"预测失败: {e}")
 
-    return PredictResponse(code=200, message="success", data=items)
+    # 保存推理结果
+    record_id = None
+    if save_results:
+        try:
+            condition = {
+                "point_ids": req.point_ids,
+                "region_code": req.region_code,
+                "magnitude": req.magnitude,
+                "depth": req.depth,
+                "epicenter_lon": req.epicenter_lon,
+                "epicenter_lat": req.epicenter_lat
+            }
+            record_id = dbn_repository.save_inference_result(
+                event_type="earthquake",
+                occurred_time=req.occurred_time,
+                operation_type=req.operation_type,
+                condition=condition,
+                result=save_results
+            )
+            logger.info(f"推理结果已保存，record_id={record_id}")
+        except Exception as e:
+            logger.error(f"保存推理结果失败: {e}", exc_info=True)
+
+    return PredictResponse(code=200, message="success", data=items, record_id=record_id)
