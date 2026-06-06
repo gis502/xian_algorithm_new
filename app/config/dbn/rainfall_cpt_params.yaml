@@ -50,53 +50,53 @@ landslide:
   rules:
     # === 极高风险（≥0.70）===
     # 暴雨+陡坡+前期饱和：秦岭北坡典型触发条件
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [high, very_high], soil_moisture: [medium, high]}
       probability: 0.75
     # 暴雨+陡坡+断裂带附近：秦岭北缘断裂沿线，岩体破碎
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [high, very_high], dist_to_fault: [very_close, close]}
       probability: 0.72
     # 长历时暴雨+陡坡+饱和：持续降雨导致深层渗流
-    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [high, very_high], soil_moisture: [medium, high]}
       probability: 0.70
 
     # === 高风险（0.50-0.65）===
     # 暴雨+中陡坡：黄土塬边典型触发条件
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [medium, high, very_high]}
       probability: 0.60
     # 大雨+陡坡+松散堆积物：黄土滑坡物质条件充分
-    - condition: {rain_intensity: [heavy, storm, downpour], slope: [steep, very_steep, extreme_steep], lithology: [unconsolidated]}
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [high, very_high], lithology: [unconsolidated]}
       probability: 0.58
     # 暴雨+中陡坡+断裂带附近
-    - condition: {rain_intensity: [heavy, storm, downpour], slope: [moderate, steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [medium, high, very_high], dist_to_fault: [very_close, close]}
       probability: 0.55
     # 城区开挖坡脚/弃土加载+暴雨：工程滑坡
-    - condition: {landuse: [urban], slope: [moderate, steep, very_steep, extreme_steep], rain_intensity: [heavy, storm, downpour, extreme]}
+    - condition: {landuse: [urban], slope: [medium, high, very_high], rain_intensity: [heavy, storm, downpour, extreme]}
       probability: 0.52
     # 大雨+陡坡+初育土（黄土）：黄土塬边滑坡
-    - condition: {rain_intensity: [heavy, storm, downpour], slope: [steep, very_steep, extreme_steep], soil_type: [entisol]}
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [high, very_high], soil_type: [entisol]}
       probability: 0.50
 
     # === 中风险（0.20-0.40）===
     # 大雨+中坡+饱和
-    - condition: {rain_intensity: [heavy], slope: [moderate, steep], soil_moisture: [wet, saturated]}
+    - condition: {rain_intensity: [heavy], slope: [medium, high], soil_moisture: [medium, high]}
       probability: 0.40
     # 中雨+陡坡
-    - condition: {rain_intensity: [moderate, heavy], slope: [steep, very_steep, extreme_steep]}
+    - condition: {rain_intensity: [moderate, heavy], slope: [high, very_high]}
       probability: 0.35
     # 暴雨+缓坡+松散堆积物：塬面黄土
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [gentle, moderate], lithology: [unconsolidated]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [low, medium], lithology: [unconsolidated]}
       probability: 0.30
     # 断裂带+陡坡（无强降雨也有基岩蠕变风险）
-    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep]}
+    - condition: {dist_to_fault: [very_close], slope: [high, very_high]}
       probability: 0.25
     # 城区+中坡：工程扰动
-    - condition: {landuse: [urban], slope: [moderate, steep]}
+    - condition: {landuse: [urban], slope: [medium, high]}
       probability: 0.20
 
     # === 低风险兜底（≤0.05）===
     - condition: {rain_intensity: [no_rain, light]}
       probability: 0.02
-    - condition: {slope: [flat, gentle]}
+    - condition: {slope: [very_low, low]}
       probability: 0.02
 
 # ----------------------------------------
@@ -115,52 +115,52 @@ debris_flow:
   rules:
     # === 极高风险（≥0.70）===
     # 暴雨+陡坡+高含沙量：典型泥石流触发条件
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], sand_content: [medium, high]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [high, very_high], sand_content: [high, very_high]}
       probability: 0.80
     # 暴雨+陡坡+断裂带附近：破碎岩体提供丰富物源
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [high, very_high], dist_to_fault: [very_close, close]}
       probability: 0.75
     # 暴雨+中高山区+松散堆积物：秦岭北麓沟道泥石流
-    - condition: {rain_intensity: [storm, downpour, extreme], elevation: [mid_mountain, high_mountain], lithology: [unconsolidated, mixed_clastic]}
+    - condition: {rain_intensity: [storm, downpour, extreme], elevation: [high, very_high], lithology: [unconsolidated, mixed_clastic]}
       probability: 0.75
     # 长历时暴雨+陡坡+饱和：深层渗透触发
-    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [high, very_high], soil_moisture: [medium, high]}
       probability: 0.72
 
     # === 高风险（0.50-0.65）===
     # 暴雨+中陡坡：沟道汇流
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [medium, high, very_high]}
       probability: 0.60
     # 大雨+陡坡+高含沙量
-    - condition: {rain_intensity: [heavy, storm, downpour], slope: [steep, very_steep, extreme_steep], sand_content: [medium, high]}
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [high, very_high], sand_content: [high, very_high]}
       probability: 0.55
     # 中高山区+中等降雨：物源区本身不稳定
-    - condition: {elevation: [mid_mountain, high_mountain], slope: [moderate, steep, very_steep, extreme_steep], rain_intensity: [heavy, storm, downpour, extreme]}
+    - condition: {elevation: [high, very_high], slope: [medium, high, very_high], rain_intensity: [heavy, storm, downpour, extreme]}
       probability: 0.55
     # 松散堆积物+陡坡+大雨：黄土泥石流
-    - condition: {lithology: [unconsolidated, mixed_clastic], slope: [steep, very_steep, extreme_steep], rain_intensity: [heavy, storm, downpour, extreme]}
+    - condition: {lithology: [unconsolidated, mixed_clastic], slope: [high, very_high], rain_intensity: [heavy, storm, downpour, extreme]}
       probability: 0.52
 
     # === 中风险（0.20-0.40）===
     # 大雨+中坡
-    - condition: {rain_intensity: [moderate, heavy], slope: [moderate, steep]}
+    - condition: {rain_intensity: [moderate, heavy], slope: [medium, high]}
       probability: 0.30
     # 中高山区+中等降雨：物源区稳定性差
-    - condition: {elevation: [mid_mountain, high_mountain], slope: [moderate, steep], rain_intensity: [moderate, heavy]}
+    - condition: {elevation: [high, very_high], slope: [medium, high], rain_intensity: [moderate, heavy]}
       probability: 0.28
     # 暴雨+缓坡+松散堆积物
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [gentle, moderate], lithology: [unconsolidated]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [low, medium], lithology: [unconsolidated]}
       probability: 0.25
     # 断裂带+陡坡（无强降雨，崩塌堆积物也可启动）
-    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep]}
+    - condition: {dist_to_fault: [very_close], slope: [high, very_high]}
       probability: 0.22
 
     # === 低风险兜底（≤0.05）===
     - condition: {rain_intensity: [no_rain, light]}
       probability: 0.01
-    - condition: {slope: [flat, gentle]}
+    - condition: {slope: [very_low, low]}
       probability: 0.02
-    - condition: {elevation: [basin, plain_urban]}
+    - condition: {elevation: [very_low, low]}
       probability: 0.02
 
 # ----------------------------------------
@@ -179,13 +179,13 @@ flash_flood:
   rules:
     # === 极高风险（≥0.80）===
     # 暴雨+饱和土壤+近河道：入渗率接近零，全部转为地表径流
-    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [saturated], dist_to_river: [very_close, close]}
+    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [high], dist_to_river: [very_close, close]}
       probability: 0.90
     # 暴雨+饱和+山地地形：秦岭北坡典型山洪条件
-    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [wet, saturated], terrain: [mountain, deep_valley, low_mountain]}
+    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [medium, high], terrain: [mountain, deep_valley, low_mountain]}
       probability: 0.85
     # 大暴雨+近河道+低洼区：渭河平原洪水
-    - condition: {rain_intensity: [downpour, extreme], dist_to_river: [very_close, close], elevation: [basin, plain_urban]}
+    - condition: {rain_intensity: [downpour, extreme], dist_to_river: [very_close, close], elevation: [very_low, low]}
       probability: 0.82
 
     # === 高风险（0.55-0.75）===
@@ -196,7 +196,7 @@ flash_flood:
     - condition: {rain_intensity: [storm, downpour, extreme], terrain: [mountain, deep_valley, low_mountain]}
       probability: 0.65
     # 大雨+饱和土壤+近河道
-    - condition: {rain_intensity: [heavy, storm, downpour], soil_moisture: [wet, saturated], dist_to_river: [very_close, close]}
+    - condition: {rain_intensity: [heavy, storm, downpour], soil_moisture: [medium, high], dist_to_river: [very_close, close]}
       probability: 0.60
     # 长历时暴雨+山地：持续汇流
     - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], terrain: [mountain, deep_valley, low_mountain]}
@@ -210,16 +210,16 @@ flash_flood:
     - condition: {rain_intensity: [heavy], dist_to_river: [very_close, close]}
       probability: 0.45
     # 暴雨+湿土（非饱和）
-    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [wet]}
+    - condition: {rain_intensity: [storm, downpour, extreme], soil_moisture: [medium]}
       probability: 0.40
     # 大雨+山地地形
     - condition: {rain_intensity: [heavy], terrain: [mountain, deep_valley, low_mountain]}
       probability: 0.35
     # 中雨+饱和+近河道
-    - condition: {rain_intensity: [moderate, heavy], soil_moisture: [saturated], dist_to_river: [very_close, close]}
+    - condition: {rain_intensity: [moderate, heavy], soil_moisture: [high], dist_to_river: [very_close, close]}
       probability: 0.40
     # 极端累计+低洼区
-    - condition: {accum_rain: [extreme], elevation: [basin, plain_urban]}
+    - condition: {accum_rain: [extreme], elevation: [very_low, low]}
       probability: 0.35
     # 暴雨+缓坡+近河道（平原河道溢出）
     - condition: {rain_intensity: [storm, downpour, extreme], dist_to_river: [very_close], terrain: [plain, flat_plain]}
@@ -228,7 +228,7 @@ flash_flood:
     # === 低风险兜底（≤0.05）===
     - condition: {rain_intensity: [no_rain, light]}
       probability: 0.01
-    - condition: {dist_to_river: [far]}
+    - condition: {dist_to_river: [far, very_far]}
       probability: 0.03
 
 # ----------------------------------------
@@ -247,50 +247,50 @@ waterlogging:
   rules:
     # === 极高风险（≥0.80）===
     # 暴雨+高不透水面+管网不足：老城区典型内涝条件
-    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [high], pipe_density: [none, low]}
+    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [high, medium], pipe_density: [none, low]}
       probability: 0.90
     # 极端累计降雨+长历时+高不透水面：持续强降雨
-    - condition: {accum_rain: [heavy, extreme], duration: [long], impervious: [medium, high]}
+    - condition: {accum_rain: [heavy, extreme], duration: [long], impervious: [high, medium]}
       probability: 0.82
     # 极端累计+低洼区+管网不足：积水无处排出
-    - condition: {accum_rain: [heavy, extreme], elevation: [basin, plain_urban], pipe_density: [none, low]}
+    - condition: {accum_rain: [heavy, extreme], elevation: [very_low, low], pipe_density: [none, low]}
       probability: 0.80
 
     # === 高风险（0.55-0.75）===
     # 暴雨+高不透水面
-    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [high]}
+    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [high, medium]}
       probability: 0.72
     # 大雨+长历时+高不透水面
-    - condition: {rain_intensity: [heavy], duration: [long], impervious: [high]}
+    - condition: {rain_intensity: [heavy], duration: [long], impervious: [high, medium]}
       probability: 0.65
     # 暴雨+城市用地+管网不足
     - condition: {rain_intensity: [storm, downpour, extreme], landuse: [urban], pipe_density: [none, low]}
       probability: 0.68
     # 大雨+中高不透水面
-    - condition: {rain_intensity: [heavy, storm, downpour], impervious: [medium, high]}
+    - condition: {rain_intensity: [heavy, storm, downpour], impervious: [high, medium]}
       probability: 0.60
     # 极端累计+低洼区（不透水面不高也会积水）
-    - condition: {accum_rain: [extreme], elevation: [basin, plain_urban]}
+    - condition: {accum_rain: [extreme], elevation: [very_low, low]}
       probability: 0.58
     # 饱和土壤+暴雨+低洼区：入渗饱和后地表积水
-    - condition: {soil_moisture: [saturated], rain_intensity: [heavy, storm, downpour, extreme], elevation: [basin, plain_urban]}
+    - condition: {soil_moisture: [high], rain_intensity: [heavy, storm, downpour, extreme], elevation: [very_low, low]}
       probability: 0.55
 
     # === 中风险（0.25-0.45）===
     # 大雨+中高不透水面
-    - condition: {rain_intensity: [moderate, heavy], impervious: [medium, high]}
+    - condition: {rain_intensity: [moderate, heavy], impervious: [high, medium]}
       probability: 0.40
     # 中等累计+管网不足
-    - condition: {accum_rain: [moderate, heavy], pipe_density: [none, low], impervious: [medium]}
+    - condition: {accum_rain: [moderate, heavy], pipe_density: [none, low], impervious: [high, medium]}
       probability: 0.38
     # 暴雨+低不透水面（非城区但排水不畅）
-    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [low]}
+    - condition: {rain_intensity: [storm, downpour, extreme], impervious: [none, very_low, low]}
       probability: 0.30
     # 近河道+暴雨：排水出口受河道水位顶托
-    - condition: {dist_to_river: [very_close, close], rain_intensity: [heavy, storm, downpour, extreme], elevation: [basin, plain_urban]}
+    - condition: {dist_to_river: [very_close, close], rain_intensity: [heavy, storm, downpour, extreme], elevation: [very_low, low]}
       probability: 0.35
     # 农田积水：低洼农田排水不畅
-    - condition: {landuse: [farmland], rain_intensity: [heavy, storm, downpour, extreme], elevation: [basin, plain_urban]}
+    - condition: {landuse: [farmland], rain_intensity: [heavy, storm, downpour, extreme], elevation: [very_low, low]}
       probability: 0.30
 
     # === 低风险兜底（≤0.05）===
@@ -299,7 +299,7 @@ waterlogging:
       probability: 0.05
     - condition: {rain_intensity: [no_rain, light]}
       probability: 0.02
-    - condition: {impervious: [low], pipe_density: [medium, high]}
+    - condition: {impervious: [none, very_low, low], pipe_density: [medium, high]}
       probability: 0.03
 
 # ----------------------------------------
@@ -318,45 +318,45 @@ collapse:
   rules:
     # === 极高风险（≥0.70）===
     # 暴雨+陡坡+松散岩性（黄土/碎屑岩）：黄土塬边崩塌
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], lithology: [terrigenous, unconsolidated, mixed_clastic]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [high, very_high], lithology: [terrigenous, unconsolidated, mixed_clastic]}
       probability: 0.72
     # 近河道+松散堆积物+陡坡：河流侧蚀致崩塌（渭河/灞河/浐河）
-    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [steep, very_steep, extreme_steep]}
+    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [high, very_high]}
       probability: 0.70
 
     # === 高风险（0.50-0.65）===
     # 暴雨+陡坡+断裂带附近：岩体破碎
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep], dist_to_fault: [very_close, close]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [medium, high, very_high], dist_to_fault: [very_close, close]}
       probability: 0.65
     # 暴雨+中陡坡+饱和：岩土体强度降低
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep], soil_moisture: [wet, saturated]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [medium, high, very_high], soil_moisture: [medium, high]}
       probability: 0.60
     # 近河道+暴雨+中陡坡：岸坡浸泡+洪水冲刷
-    - condition: {dist_to_river: [very_close, close], rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep]}
+    - condition: {dist_to_river: [very_close, close], rain_intensity: [storm, downpour, extreme], slope: [medium, high, very_high]}
       probability: 0.58
     # 暴雨+中陡坡
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [moderate, steep, very_steep, extreme_steep]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [medium, high, very_high]}
       probability: 0.50
     # 长历时+大雨+陡坡+松散岩性：持续入渗软化
-    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [steep, very_steep, extreme_steep], lithology: [terrigenous, unconsolidated, mixed_clastic]}
+    - condition: {duration: [long], rain_intensity: [heavy, storm, downpour, extreme], slope: [high, very_high], lithology: [terrigenous, unconsolidated, mixed_clastic]}
       probability: 0.55
 
     # === 中风险（0.20-0.40）===
     # 近河道+缓坡+松散堆积物：侧蚀累积效应
-    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [moderate]}
+    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [medium]}
       probability: 0.35
     # 大雨+中坡
-    - condition: {rain_intensity: [heavy], slope: [moderate, steep]}
+    - condition: {rain_intensity: [heavy], slope: [medium, high]}
       probability: 0.30
     # 断裂带+陡坡（无强降雨也有蠕变崩塌风险）
-    - condition: {dist_to_fault: [very_close], slope: [steep, very_steep, extreme_steep]}
+    - condition: {dist_to_fault: [very_close], slope: [high, very_high]}
       probability: 0.25
     # 暴雨+缓坡+松散岩性
-    - condition: {rain_intensity: [storm, downpour, extreme], slope: [gentle, moderate], lithology: [unconsolidated]}
+    - condition: {rain_intensity: [storm, downpour, extreme], slope: [low, medium], lithology: [unconsolidated]}
       probability: 0.22
 
     # === 低风险兜底（≤0.05）===
     - condition: {rain_intensity: [no_rain, light]}
       probability: 0.01
-    - condition: {slope: [flat, gentle]}
+    - condition: {slope: [very_low, low]}
       probability: 0.01
