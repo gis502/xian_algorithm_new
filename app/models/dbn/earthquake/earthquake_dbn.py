@@ -18,21 +18,20 @@ logger = get_logger("earthquake_dbn")
 class EarthquakeDBN:
     """地震灾害链DBN模型"""
 
-    # 灾害概率→离散等级的阈值映射
+    # 灾害概率→等级的阈值映射
     HAZARD_LEVEL_THRESHOLDS = [
-        (0.6, 'very_high'),
-        (0.4, 'high'),
-        (0.2, 'medium'),
-        (0.05, 'low'),
-        (0.0, 'none'),
+        (0.7, '高'),
+        (0.5, '较高'),
+        (0.3, '中'),
+        (0.0, '低'),
     ]
 
     def _probability_to_level(self, prob: float) -> str:
-        """将连续概率映射到离散等级"""
+        """将连续概率映射到风险等级：低(<30%) / 中(30-50%) / 较高(50-70%) / 高(70%+)"""
         for threshold, level in self.HAZARD_LEVEL_THRESHOLDS:
             if prob >= threshold:
                 return level
-        return 'none'
+        return '低'
 
     def __init__(self, config_dir: Optional[str] = None):
         """
@@ -114,18 +113,20 @@ class EarthquakeDBN:
                     }
 
     @staticmethod
-    def estimate_seismic_intensity(magnitude: float, epicenter_distance_km: float) -> float:
+    def estimate_seismic_intensity(magnitude: float, epicenter_distance_km: float,
+                                   depth_km: float = 10.0) -> float:
         """
-        根据震级和震中距估算地震烈度
-        使用中国地震烈度衰减关系
+        根据震级、震中距和震源深度估算地震烈度
 
-        I = 0.923 + 1.621*M - 3.494*ln(R+10)
+        I = 0.923 + 1.621*M - 3.494*ln(R+10) - ln(H/10)
 
         参考：GB 18306-2015 中国地震动参数区划图
+        深度修正：震源越深，地表烈度越低
 
         Args:
             magnitude: 震级（Richter）
             epicenter_distance_km: 震中距（km）
+            depth_km: 震源深度（km），默认10km
 
         Returns:
             估算的地震烈度（中国烈度表数值）
@@ -134,6 +135,10 @@ class EarthquakeDBN:
             epicenter_distance_km = 0
 
         intensity = 0.923 + 1.621 * magnitude - 3.494 * math.log(epicenter_distance_km + 10)
+
+        # 震源深度修正：以10km为基准，深度越大烈度衰减越多
+        depth_km = max(depth_km, 1.0)
+        intensity -= math.log(depth_km / 10.0)
 
         # 限制在合理范围内
         return max(1.0, min(12.0, intensity))
@@ -191,7 +196,8 @@ class EarthquakeDBN:
                              epicenter_distance: Optional[float] = None,
                              seismic_intensity: Optional[float] = None,
                              epicenter_lon: Optional[float] = None,
-                             epicenter_lat: Optional[float] = None) -> Dict[str, Any]:
+                             epicenter_lat: Optional[float] = None,
+                             depth: float = 10.0) -> Dict[str, Any]:
         """
         对单个点进行地震灾害预测
 
@@ -202,6 +208,7 @@ class EarthquakeDBN:
             seismic_intensity: 地震烈度（中国烈度表），若未提供则自动估算
             epicenter_lon: 震中经度（可选，用于计算震中距）
             epicenter_lat: 震中纬度（可选，用于计算震中距）
+            depth: 震源深度（km），默认10.0
 
         Returns:
             预测结果
@@ -226,7 +233,7 @@ class EarthquakeDBN:
 
         # 估算地震烈度（如果未直接提供）
         if seismic_intensity is None:
-            seismic_intensity = self.estimate_seismic_intensity(magnitude, epicenter_distance)
+            seismic_intensity = self.estimate_seismic_intensity(magnitude, epicenter_distance, depth)
             logger.info(f"估算地震烈度: {seismic_intensity:.1f}")
 
         # 获取静态因子数据
@@ -377,6 +384,52 @@ class EarthquakeDBN:
                     'error': str(e)
                 })
 
+        return results
+
+    def predict_multiple_points(self, points: List[Dict[str, Any]],
+                                magnitude: float = 6.0,
+                                epicenter_distance: Optional[float] = None,
+                                seismic_intensity: Optional[float] = None,
+                                epicenter_lon: Optional[float] = None,
+                                epicenter_lat: Optional[float] = None,
+                                depth: float = 10.0) -> List[Dict[str, Any]]:
+        """
+        对已获取的点列表进行地震灾害预测
+
+        Args:
+            points: 点信息列表（已从数据库获取）
+            magnitude: 地震震级
+            epicenter_distance: 震中距（km，可选）
+            seismic_intensity: 地震烈度（可选）
+            epicenter_lon: 震中经度（可选）
+            epicenter_lat: 震中纬度（可选）
+            depth: 震源深度（km），默认10.0
+
+        Returns:
+            预测结果列表
+        """
+        results = []
+        for point in points:
+            try:
+                result = self.predict_single_point(
+                    point,
+                    magnitude=magnitude,
+                    epicenter_distance=epicenter_distance,
+                    seismic_intensity=seismic_intensity,
+                    epicenter_lon=epicenter_lon,
+                    epicenter_lat=epicenter_lat,
+                    depth=depth
+                )
+                results.append(result)
+            except Exception as e:
+                logger.error(f"预测点 {point.get('id')} 失败: {e}")
+                results.append({
+                    'point_id': point.get('id'),
+                    'source_type': point.get('source_type'),
+                    'lon': point.get('lon'),
+                    'lat': point.get('lat'),
+                    'error': str(e)
+                })
         return results
 
     def get_model_info(self) -> Dict[str, Any]:

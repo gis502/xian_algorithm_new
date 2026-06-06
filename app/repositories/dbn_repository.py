@@ -22,26 +22,35 @@ class DbnRepository:
         获取所有隐患点和风险点（从 xian_risk_factors 表）
 
         Args:
-            region_code: 行政区划代码（区县名称），可选
+            region_code: 行政区划代码（如 '610104'），可选，匹配隐患点.county_code 和风险点.unit_code
 
         Returns:
             点列表，每个元素包含：id, source_id, source_type, lon, lat, static_factors
         """
-        sql = """
-            SELECT
-                id,
-                source_id,
-                source_type,
-                lon,
-                lat,
-                static_factors
-            FROM xian_risk_factors
-            WHERE is_delete = 0
-        """
-        params = (region_code,) if region_code else None
-
         if region_code:
-            sql += " AND county = %s"
+            # 通过源表的行政区划代码筛选
+            sql = """
+                SELECT rf.id, rf.source_id, rf.source_type, rf.lon, rf.lat, rf.static_factors
+                FROM xian_risk_factors rf
+                WHERE rf.is_delete = 0
+                  AND (
+                    (rf.source_type = 1 AND rf.source_id IN (
+                        SELECT id FROM xian_hidden_danger_spots WHERE county_id = %s AND is_delete = 0
+                    ))
+                    OR
+                    (rf.source_type = 2 AND rf.source_id IN (
+                        SELECT id FROM xian_risk_spots WHERE unit_code = %s AND is_delete = 0
+                    ))
+                  )
+            """
+            params = (region_code, region_code)
+        else:
+            sql = """
+                SELECT id, source_id, source_type, lon, lat, static_factors
+                FROM xian_risk_factors
+                WHERE is_delete = 0
+            """
+            params = None
 
         results = db_helper.execute_query(sql, params)
 
@@ -93,6 +102,43 @@ class DbnRepository:
             'lat': float(result['lat']) if result['lat'] else None,
             'static_factors': result.get('static_factors') or {}
         }
+
+    @staticmethod
+    def get_points_by_ids(point_ids: List[int]) -> List[Dict[str, Any]]:
+        """
+        批量获取点信息
+
+        Args:
+            point_ids: 点ID列表
+
+        Returns:
+            点信息列表
+        """
+        if not point_ids:
+            return []
+
+        placeholders = ','.join(['%s'] * len(point_ids))
+        sql = f"""
+            SELECT
+                rf.id,
+                rf.source_id,
+                rf.source_type,
+                rf.lon,
+                rf.lat,
+                rf.static_factors
+            FROM xian_risk_factors rf
+            WHERE rf.id IN ({placeholders}) AND rf.is_delete = 0
+        """
+        results = db_helper.execute_query(sql, tuple(point_ids))
+
+        return [{
+            'id': row['id'],
+            'source_id': row['source_id'],
+            'source_type': row['source_type'],
+            'lon': float(row['lon']) if row['lon'] else None,
+            'lat': float(row['lat']) if row['lat'] else None,
+            'static_factors': row.get('static_factors') or {}
+        } for row in results]
 
     @staticmethod
     def get_static_factors(point_id: int) -> Dict[str, Any]:

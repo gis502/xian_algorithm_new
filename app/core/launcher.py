@@ -51,11 +51,29 @@ class AppLauncher:
 
 def start():
     """启动应用服务"""
+    import threading
+    from config import settings
     from app.core.rainfall_manager import rainfall_manager
     from app.utils.logger import get_logger
     from app.utils.thread_pool_manager import block_main_thread, thread_pool_manager
 
     logger = get_logger()
+
+    # 启动 FastAPI 服务（守护线程）
+    def run_api_server():
+        import uvicorn
+        from app.core.server import create_app
+        api_app = create_app()
+        uvicorn.run(
+            api_app,
+            host=getattr(settings, "API_HOST", "127.0.0.1"),
+            port=int(getattr(settings, "API_PORT", 8082)),
+            log_level="info",
+        )
+
+    api_thread = threading.Thread(target=run_api_server, daemon=True, name="api-server")
+    api_thread.start()
+    logger.info(f"FastAPI 服务已启动: http://{getattr(settings, 'API_HOST', '127.0.0.1')}:{getattr(settings, 'API_PORT', 8082)}")
 
     # 启动降雨站点监测
     logger.info("启动降雨站点监测服务...")

@@ -17,21 +17,20 @@ logger = get_logger("dbn")
 class RainfallDBN:
     """暴雨灾害链DBN模型"""
 
-    # 灾害概率→离散等级的阈值映射
+    # 灾害概率→等级的阈值映射
     HAZARD_LEVEL_THRESHOLDS = [
-        (0.6, 'very_high'),
-        (0.4, 'high'),
-        (0.2, 'medium'),
-        (0.05, 'low'),
-        (0.0, 'none'),
+        (0.7, '高'),
+        (0.5, '较高'),
+        (0.3, '中'),
+        (0.0, '低'),
     ]
 
     def _probability_to_level(self, prob: float) -> str:
-        """将连续概率映射到离散等级"""
+        """将连续概率映射到风险等级：低(<30%) / 中(30-50%) / 较高(50-70%) / 高(70%+)"""
         for threshold, level in self.HAZARD_LEVEL_THRESHOLDS:
             if prob >= threshold:
                 return level
-        return 'none'
+        return '低'
 
     def __init__(self, config_dir: Optional[str] = None):
         """
@@ -372,6 +371,40 @@ class RainfallDBN:
                     'error': str(e)
                 })
 
+        return results
+
+    def predict_multiple_points(self, points: List[Dict[str, Any]],
+                                rainfall: Optional[float] = None,
+                                duration: Optional[float] = None,
+                                query_time: Optional[datetime] = None) -> List[Dict[str, Any]]:
+        """
+        对已获取的点列表进行暴雨灾害预测
+
+        Args:
+            points: 点信息列表（已从数据库获取）
+            rainfall: 累计降雨量（可选）
+            duration: 持续时间（可选）
+            query_time: 查询时间（可选）
+
+        Returns:
+            预测结果列表
+        """
+        results = []
+        for point in points:
+            try:
+                result = self.predict_single_point(
+                    point, rainfall=rainfall, duration=duration, query_time=query_time
+                )
+                results.append(result)
+            except Exception as e:
+                logger.error(f"预测点 {point.get('id')} 失败: {e}")
+                results.append({
+                    'point_id': point.get('id'),
+                    'source_type': point.get('source_type'),
+                    'lon': point.get('lon'),
+                    'lat': point.get('lat'),
+                    'error': str(e)
+                })
         return results
 
     def get_model_info(self) -> Dict[str, Any]:
