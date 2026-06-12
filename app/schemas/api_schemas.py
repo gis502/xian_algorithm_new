@@ -61,6 +61,11 @@ class PredictResponse(BaseModel):
     record_id: Optional[int] = Field(None, description="推理结果记录ID")
 
 
+class UpdateMonitoringTimeRequest(BaseModel):
+    """更新监测时间请求"""
+    query_time: str = Field(..., description="查询时间，格式: YYYY-MM-DD HH:mm:ss，如 '2025-09-16 20:00:00'")
+
+
 class HealthResponse(BaseModel):
     """健康检查响应"""
     status: str = "ok"

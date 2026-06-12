@@ -7,10 +7,12 @@ from typing import List, Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.api_schemas import RainfallPredictRequest, PredictResponse, PredictionItem
+from app.schemas.api_schemas import RainfallPredictRequest, PredictResponse, PredictionItem, UpdateMonitoringTimeRequest
 from app.utils.api_deps import get_rainfall_model, get_prediction_semaphore
 from app.repositories.dbn_repository import dbn_repository
+from app.core.rainfall_manager import rainfall_manager
 from app.config.paths import get_logger
+from app.utils.time_converter import TimeConverter
 
 router = APIRouter(prefix="/rainfall", tags=["暴雨灾害链"])
 logger = get_logger("api.rainfall")
@@ -84,6 +86,34 @@ def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
     ]
 
     return items, save_results, condition, now
+
+
+@router.post("/update-monitoring-time", summary="更新降雨监测查询时间")
+async def update_monitoring_time(req: UpdateMonitoringTimeRequest):
+    """
+    更新降雨站点监测的查询时间，触发重新计算
+    
+    - **query_time**: 新的查询时间，格式: YYYY-MM-DD HH:mm:ss
+    """
+    try:
+        # 将字符串时间解析为 datetime 对象
+        new_time = TimeConverter.parse_input_time(req.query_time)
+        
+        # 更新监测时间，触发重新计算
+        result = rainfall_manager.update_query_time(new_time)
+        
+        logger.info(f"更新监测时间成功: {result}")
+        return {
+            "code": 200,
+            "message": "success",
+            "data": result
+        }
+    except ValueError as e:
+        logger.error(f"时间格式错误: {e}")
+        raise HTTPException(status_code=400, detail=f"时间格式错误: {e}")
+    except Exception as e:
+        logger.error(f"更新监测时间失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"更新监测时间失败: {e}")
 
 
 @router.post("/predict", response_model=PredictResponse, summary="暴雨灾害链预测")
