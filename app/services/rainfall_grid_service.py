@@ -120,6 +120,10 @@ class RainfallGridService:
     def interpolate_rainfall(self, station_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         使用优化的反距离权重法（IDW）进行降雨插值
+        
+        注意：station_data 现在包含 'rainfall'（累计降雨量）和 'duration_hours'（持续时间）
+        与DBN推演使用相同的降雨量计算逻辑（72小时回溯 + 3小时无雨截断）
+        
         改进：
         1. 高斯核衰减替代简单幂律
         2. 自适应距离阈值
@@ -127,7 +131,11 @@ class RainfallGridService:
         4. 高斯平滑减少突变
 
         Args:
-            station_data: 站点数据列表
+            station_data: 站点数据列表，格式：
+                [
+                    {'lon': x, 'lat': y, 'rainfall': z, 'duration_hours': h},
+                    ...
+                ]
 
         Returns:
             插值结果字典

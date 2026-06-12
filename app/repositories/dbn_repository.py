@@ -3,9 +3,10 @@
 负责从 xian_risk_factors、xian_meteorology 等表获取数据
 """
 import math
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from app.utils.db_helper import db_helper
+from app.utils.time_converter import time_converter
 from app.config.paths import get_logger
 
 logger = get_logger("dbn")
@@ -166,20 +167,23 @@ class DbnRepository:
 
     @staticmethod
     def get_nearest_station_rainfall(lon: float, lat: float,
-                                     query_time: Optional[datetime] = None) -> Dict[str, Any]:
+                                     query_time: Optional[Union[datetime, str]] = None) -> Dict[str, Any]:
         """
         获取最近雨量站的降雨数据
 
         Args:
             lon: 经度
             lat: 纬度
-            query_time: 查询时间，若未提供则取当前时间
+            query_time: 查询时间，若未提供则取当前时间。支持datetime对象或标准时间字符串（如'2025-07-04 20:00:00'）
 
         Returns:
             降雨数据
         """
         if query_time is None:
             query_time = datetime.now()
+        
+        # 获取时间范围（24小时窗口）
+        start_time, end_time = time_converter.to_db_time_range(query_time, hours=24)
 
         # noinspection SqlNoDataSourceInspection
         sql = """
@@ -190,9 +194,7 @@ class DbnRepository:
                     SUM(CAST(rainfall_1h AS DOUBLE PRECISION)) as total_rainfall,
                     COUNT(*) as record_count
                 FROM xian_meteorology
-                WHERE datetime BETWEEN
-                    CAST(EXTRACT(EPOCH FROM (%s::timestamp - INTERVAL '24 hours')) AS BIGINT)
-                    AND CAST(EXTRACT(EPOCH FROM %s::timestamp) AS BIGINT)
+                WHERE datetime BETWEEN %s AND %s
                     AND rainfall_1h IS NOT NULL
                     AND CAST(rainfall_1h AS DOUBLE PRECISION) > 0
                 GROUP BY lon, lat
@@ -210,7 +212,7 @@ class DbnRepository:
             ORDER BY distance
             LIMIT 1
         """
-        result = db_helper.execute_query_one(sql, (query_time, query_time, lon, lat))
+        result = db_helper.execute_query_one(sql, (start_time, end_time, lon, lat))
 
         if result:
             return {
@@ -231,14 +233,14 @@ class DbnRepository:
 
     @staticmethod
     def get_rainfall_data_with_duration(lon: float, lat: float,
-                                        query_time: Optional[datetime] = None) -> Dict[str, Any]:
+                                        query_time: Optional[Union[datetime, str]] = None) -> Dict[str, Any]:
         """
         获取降雨数据，包括累计降雨量和持续时间
 
         Args:
             lon: 经度
             lat: 纬度
-            query_time: 查询时间，若未提供则取当前时间
+            query_time: 查询时间，若未提供则取当前时间。支持datetime对象或标准时间字符串（如'2025-07-04 20:00:00'）
 
         Returns:
             降雨数据：{accum_rain, duration_hours, rain_intensity}
@@ -270,6 +272,9 @@ class DbnRepository:
         station_lon = station['lon']
         station_lat = station['lat']
 
+        # 获取时间范围（72小时窗口）
+        start_time, end_time = time_converter.to_db_time_range(query_time, hours=72)
+
         # 查询该站点的降雨时序数据
         # noinspection SqlNoDataSourceInspection
         sql = """
@@ -278,12 +283,10 @@ class DbnRepository:
                 CAST(rainfall_1h AS DOUBLE PRECISION) as rainfall
             FROM xian_meteorology
             WHERE lon = %s AND lat = %s
-            AND datetime BETWEEN
-                CAST(EXTRACT(EPOCH FROM (%s::timestamp - INTERVAL '72 hours')) AS BIGINT)
-                AND CAST(EXTRACT(EPOCH FROM %s::timestamp) AS BIGINT)
+            AND datetime BETWEEN %s AND %s
             ORDER BY datetime DESC
         """
-        results = db_helper.execute_query(sql, (station_lon, station_lat, query_time, query_time))
+        results = db_helper.execute_query(sql, (station_lon, station_lat, start_time, end_time))
 
         if not results:
             return {'accum_rain': 0.0, 'duration_hours': 0, 'rain_intensity': 0.0}
@@ -357,13 +360,13 @@ class DbnRepository:
 
     @classmethod
     def get_rainfall_data_batch(cls, points: List[Dict[str, Any]],
-                                query_time: Optional[datetime] = None) -> Dict[str, Dict[str, Any]]:
+                                query_time: Optional[Union[datetime, str]] = None) -> Dict[str, Dict[str, Any]]:
         """
         批量获取多个点的降雨数据（2次DB查询替代 N×2次）
 
         Args:
             points: 预测点列表，每个含 {'id': str, 'lon': float, 'lat': float}
-            query_time: 查询时间
+            query_time: 查询时间，支持datetime对象或标准时间字符串（如'2025-07-04 20:00:00'）
 
         Returns:
             {point_id: {accum_rain, duration_hours, rain_intensity}}
@@ -394,16 +397,17 @@ class DbnRepository:
         params: List[Any] = []
         for slon, slat in station_keys:
             params.extend([slon, slat])
-        params.extend([query_time, query_time])
+        
+        # 获取时间范围（72小时窗口）
+        start_time, end_time = time_converter.to_db_time_range(query_time, hours=72)
+        params.extend([start_time, end_time])
 
         # noinspection SqlNoDataSourceInspection
         sql = f"""
             SELECT lon, lat, datetime, CAST(rainfall_1h AS DOUBLE PRECISION) as rainfall
             FROM xian_meteorology
             WHERE (lon, lat) IN ({placeholders})
-            AND datetime BETWEEN
-                CAST(EXTRACT(EPOCH FROM (%s::timestamp - INTERVAL '72 hours')) AS BIGINT)
-                AND CAST(EXTRACT(EPOCH FROM %s::timestamp) AS BIGINT)
+            AND datetime BETWEEN %s AND %s
             ORDER BY lon, lat, datetime DESC
         """
         rows = db_helper.execute_query(sql, tuple(params))

@@ -3,6 +3,7 @@
 """
 import sys
 from pathlib import Path
+from datetime import datetime
 
 from app.core.env_checker import check_environment
 from app.core.venv_manager import check_virtualenv
@@ -61,7 +62,7 @@ class AppLauncher:
                 return
 
             # 以下代码仅在虚拟环境中执行
-            # 检查安装依赖（只执行一次）
+            # 检查安装依赖
             check_dependencies(self.project_root)
 
             # 启动应用
@@ -104,6 +105,7 @@ def start():
 
     # 启动降雨站点监测
     logger.info("启动降雨站点监测服务...")
+
     rainfall_manager.monitoring_rainfall_station_id('2025-09-16 20:00:00')
 
     # 阻塞主线程，防止程序立即退出
