@@ -214,11 +214,12 @@ class EarthquakeDBN:
             预测结果
         """
         point_id = point.get('id')
+        source_id = point.get('source_id')
         lon = point.get('lon')
         lat = point.get('lat')
         source_type = point.get('source_type')
 
-        logger.debug(f"地震预测点 ID={point_id}, source_type={source_type}")
+        logger.debug(f"地震预测点 ID={point_id}, source_id={source_id}, source_type={source_type}")
 
         # 计算震中距（如果未直接提供）
         if epicenter_distance is None:
@@ -270,6 +271,7 @@ class EarthquakeDBN:
         # 构造输出
         result = {
             'point_id': point_id,
+            'source_id': source_id,  # 隐患点/风险点的真实ID
             'source_type': source_type,
             'lon': lon,
             'lat': lat,
@@ -376,6 +378,7 @@ class EarthquakeDBN:
                 logger.error(f"预测点 {point.get('id')} 失败: {e}")
                 results.append({
                     'point_id': point.get('id'),
+                    'source_id': point.get('source_id'),
                     'source_type': point.get('source_type'),
                     'lon': point.get('lon'),
                     'lat': point.get('lat'),
@@ -423,6 +426,7 @@ class EarthquakeDBN:
                 logger.error(f"预测点 {point.get('id')} 失败: {e}")
                 results.append({
                     'point_id': point.get('id'),
+                    'source_id': point.get('source_id'),
                     'source_type': point.get('source_type'),
                     'lon': point.get('lon'),
                     'lat': point.get('lat'),

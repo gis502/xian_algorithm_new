@@ -102,8 +102,8 @@ landslide:
     # 大地震+近场+丘陵地形：黄土塬边
     - condition: {magnitude: [major, great], epicenter_distance: [very_near, near], terrain: [hill, gentle_hill]}
       probability: 0.55
-    # 强震+近场+初育土（黄土）
-    - condition: {magnitude: [strong, major], epicenter_distance: [very_near, near], soil_type: [entisol]}
+    # 强震+近场+初育土（新积土/风沙土，黄土）
+    - condition: {magnitude: [strong, major], epicenter_distance: [very_near, near], soil_type: [alluvial, aeolian]}
       probability: 0.52
 
     # === 中风险（0.20-0.40）===

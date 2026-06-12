@@ -72,8 +72,8 @@ landslide:
     # 城区开挖坡脚/弃土加载+暴雨：工程滑坡
     - condition: {landuse: [urban], slope: [medium, high, very_high], rain_intensity: [heavy, storm, downpour, extreme]}
       probability: 0.52
-    # 大雨+陡坡+初育土（黄土）：黄土塬边滑坡
-    - condition: {rain_intensity: [heavy, storm, downpour], slope: [high, very_high], soil_type: [entisol]}
+    # 大雨+陡坡+初育土（新积土/风沙土，黄土）：黄土塬边滑坡
+    - condition: {rain_intensity: [heavy, storm, downpour], slope: [high, very_high], soil_type: [alluvial, aeolian]}
       probability: 0.50
 
     # === 中风险（0.20-0.40）===

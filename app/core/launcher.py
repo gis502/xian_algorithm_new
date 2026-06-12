@@ -34,9 +34,6 @@ class AppLauncher:
             # 检查虚拟环境
             check_virtualenv(self.project_root)
 
-            # 检查安装依赖
-            check_dependencies(self.project_root)
-
             # 检查是否正在使用虚拟环境运行
             import platform
             import sys
@@ -57,11 +54,15 @@ class AppLauncher:
                 print("检测到未使用虚拟环境，正在切换到虚拟环境...")
                 print("=" * 50)
                 
-                # 使用虚拟环境的Python重新启动应用
+                # 使用虚拟环境的Python重新启动应用（不传递参数避免重复检查）
                 import subprocess
                 cmd = [str(venv_python)] + sys.argv
                 subprocess.run(cmd, check=True)
                 return
+
+            # 以下代码仅在虚拟环境中执行
+            # 检查安装依赖（只执行一次）
+            check_dependencies(self.project_root)
 
             # 启动应用
             print("\n" + "=" * 50)

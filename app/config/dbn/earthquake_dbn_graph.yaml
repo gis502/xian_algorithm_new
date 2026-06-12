@@ -147,18 +147,18 @@ node_states:
   seismic_intensity: [minor, light, moderate, severe, extreme]
 
   # 环境层（与暴雨模型共享，状态名与 discretization.yaml 一致）
-  # 基于1201个样本的实际数据分布，2026-06-06更新
+  # 基于1365个样本的实际数据分布，2026-06-11更新
   elevation: [very_low, low, medium, high, very_high]
   slope: [very_low, low, medium, high, very_high]
   aspect: [flat, north, east, south, west]
-  soil_type: [ultisol, entisol, fluvo_aquic, yellow_brown]
-  lithology: [acid_rock, basic_rock, carbonate, metamorphic, mixed_clastic, terrigenous, unconsolidated]
+  soil_type: [brown_soil, yellow_brown, cinnamon, black_lu, alluvial, aeolian, unknown]
+  lithology: [acid_rock, basic_rock, carbonate, metamorphic, mixed_clastic, terrigenous, unconsolidated, unknown]
   landuse: [forest, farmland, urban, water, barren]
-  terrain: [mountain, plain, deep_valley, hill, gentle_hill, low_mountain, flat_plain]
+  terrain: [mountain, plain, deep_valley, hill, gentle_hill, low_mountain, flat_plain, unknown]
   ndvi: [very_low, low, medium, high, very_high]
   sand_content: [very_low, low, medium, high, very_high]
   ph: [very_low, low, medium, high, very_high]
-  soil_moisture: [very_low, low, medium, high]
+  soil_moisture: [very_low, low, medium, high, very_high]
   organic_carbon: [very_low, low, medium, high, very_high]
   dist_to_river: [very_close, close, moderate, far, very_far]
   dist_to_fault: [very_close, close, moderate, far, very_far]

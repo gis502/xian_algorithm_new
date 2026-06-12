@@ -230,11 +230,12 @@ class RainfallDBN:
             预测结果
         """
         point_id = point.get('id')
+        source_id = point.get('source_id')
         lon = point.get('lon')
         lat = point.get('lat')
         source_type = point.get('source_type')
 
-        logger.debug(f"预测点 ID={point_id}, source_type={source_type}")
+        logger.debug(f"预测点 ID={point_id}, source_id={source_id}, source_type={source_type}")
 
         # 获取降雨数据
         if rainfall is not None and duration is not None:
@@ -287,6 +288,7 @@ class RainfallDBN:
         # 构造输出
         result = {
             'point_id': point_id,
+            'source_id': source_id,  # 隐患点/风险点的真实ID
             'source_type': source_type,
             'lon': lon,
             'lat': lat,
@@ -369,6 +371,7 @@ class RainfallDBN:
                 logger.error(f"预测点 {point.get('id')} 失败: {e}")
                 results.append({
                     'point_id': point.get('id'),
+                    'source_id': point.get('source_id'),
                     'source_type': point.get('source_type'),
                     'lon': point.get('lon'),
                     'lat': point.get('lat'),
@@ -417,6 +420,7 @@ class RainfallDBN:
                 logger.error(f"预测点 {point.get('id')} 失败: {e}")
                 results.append({
                     'point_id': point.get('id'),
+                    'source_id': point.get('source_id'),
                     'source_type': point.get('source_type'),
                     'lon': point.get('lon'),
                     'lat': point.get('lat'),

@@ -31,7 +31,7 @@ def _build_prediction_items(results: List[Dict[str, Any]]) -> List[PredictionIte
 
         max_hazard = max(probs, key=probs.get)
         items.append(PredictionItem(
-            id=r["point_id"],
+            id=r["source_id"],  # 使用 source_id（隐患点/风险点ID）而非 xian_risk_factors.id
             type=SOURCE_TYPE_MAP.get(r.get("source_type"), "未知"),
             probability=round(probs[max_hazard], 4),
             level=LEVEL_MAP.get(levels.get(max_hazard, "none"), "无"),
@@ -73,7 +73,7 @@ def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
     }
     save_results = [
         {
-            "point_id": r.get("point_id"),
+            "point_id": r.get("source_id"),  # 使用 source_id（隐患点/风险点ID）而非 xian_risk_factors.id
             "source_type": r.get("source_type"),
             "lon": r.get("lon"),
             "lat": r.get("lat"),
