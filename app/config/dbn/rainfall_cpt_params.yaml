@@ -86,11 +86,11 @@ landslide:
     # 暴雨+缓坡+松散堆积物：塬面黄土
     - condition: {rain_intensity: [storm, downpour, extreme], slope: [low, medium], lithology: [unconsolidated]}
       probability: 0.30
-    # 断裂带+陡坡（无强降雨也有基岩蠕变风险）
-    - condition: {dist_to_fault: [very_close], slope: [high, very_high]}
+    # 断裂带+陡坡+降雨（无强降雨时基岩蠕变速率极低，需降雨触发失稳）
+    - condition: {rain_intensity: [light, moderate, heavy, storm, downpour, extreme], dist_to_fault: [very_close], slope: [high, very_high]}
       probability: 0.25
-    # 城区+中坡：工程扰动
-    - condition: {landuse: [urban], slope: [medium, high]}
+    # 城区+中坡+降雨：工程扰动需降雨触发
+    - condition: {rain_intensity: [light, moderate, heavy, storm, downpour, extreme], landuse: [urban], slope: [medium, high]}
       probability: 0.20
 
     # === 低风险兜底（≤0.05）===
@@ -151,8 +151,8 @@ debris_flow:
     # 暴雨+缓坡+松散堆积物
     - condition: {rain_intensity: [storm, downpour, extreme], slope: [low, medium], lithology: [unconsolidated]}
       probability: 0.25
-    # 断裂带+陡坡（无强降雨，崩塌堆积物也可启动）
-    - condition: {dist_to_fault: [very_close], slope: [high, very_high]}
+    # 断裂带+陡坡+降雨（无降雨时崩塌堆积物缺乏运移介质，泥石流无法启动）
+    - condition: {rain_intensity: [light, moderate, heavy, storm, downpour, extreme], dist_to_fault: [very_close], slope: [high, very_high]}
       probability: 0.22
 
     # === 低风险兜底（≤0.05）===
@@ -320,8 +320,9 @@ collapse:
     # 暴雨+陡坡+松散岩性（黄土/碎屑岩）：黄土塬边崩塌
     - condition: {rain_intensity: [storm, downpour, extreme], slope: [high, very_high], lithology: [terrigenous, unconsolidated, mixed_clastic]}
       probability: 0.72
-    # 近河道+松散堆积物+陡坡：河流侧蚀致崩塌（渭河/灞河/浐河）
-    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [high, very_high]}
+    # 近河道+松散堆积物+陡坡+降雨：河流侧蚀致崩塌（渭河/灞河/浐河）
+    # 降雨是崩塌的直接触发因素，无降雨时河流侧蚀是缓慢累积过程，不构成即时风险
+    - condition: {rain_intensity: [light, moderate, heavy, storm, downpour, extreme], dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [high, very_high]}
       probability: 0.70
 
     # === 高风险（0.50-0.65）===
@@ -342,14 +343,14 @@ collapse:
       probability: 0.55
 
     # === 中风险（0.20-0.40）===
-    # 近河道+缓坡+松散堆积物：侧蚀累积效应
-    - condition: {dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [medium]}
+    # 近河道+缓坡+松散堆积物+降雨：侧蚀累积效应需降雨触发
+    - condition: {rain_intensity: [light, moderate, heavy, storm, downpour, extreme], dist_to_river: [very_close, close], lithology: [unconsolidated], slope: [medium]}
       probability: 0.35
     # 大雨+中坡
     - condition: {rain_intensity: [heavy], slope: [medium, high]}
       probability: 0.30
-    # 断裂带+陡坡（无强降雨也有蠕变崩塌风险）
-    - condition: {dist_to_fault: [very_close], slope: [high, very_high]}
+    # 断裂带+陡坡+降雨（无强降雨时蠕变崩塌概率极低，需降雨触发）
+    - condition: {rain_intensity: [light, moderate, heavy, storm, downpour, extreme], dist_to_fault: [very_close], slope: [high, very_high]}
       probability: 0.25
     # 暴雨+缓坡+松散岩性
     - condition: {rain_intensity: [storm, downpour, extreme], slope: [low, medium], lithology: [unconsolidated]}
