@@ -100,19 +100,23 @@ async def predict_earthquake(req: EarthquakePredictRequest):
     record_id = None
     if result_map:
         try:
-            # 存储经过默认值处理的条件（depth 默认值为 10.0）
+            # 使用传入的 occurred_time，如果未传则使用当前时间
+            from datetime import datetime
+            occurred_time = req.occurred_time if req.occurred_time else datetime.now()
+            # 存储经过默认值处理的条件
             condition = {
                 "point_ids": req.point_ids,
                 "region_code": req.region_code,
                 "magnitude": req.magnitude,
                 "depth": req.depth,  # 已有默认值 10.0
                 "epicenter_lon": req.epicenter_lon,
-                "epicenter_lat": req.epicenter_lat
+                "epicenter_lat": req.epicenter_lat,
+                "occurred_time": occurred_time.isoformat() if hasattr(occurred_time, 'isoformat') else str(occurred_time)
             }
             record_id = dbn_repository.save_inference_result(
                 disaster_name=req.disaster_name,
                 event_type="earthquake",
-                occurred_time=req.occurred_time,
+                occurred_time=occurred_time,
                 operation_type=req.operation_type,
                 condition=condition,
                 result=result_map
