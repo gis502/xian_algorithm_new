@@ -8,6 +8,8 @@ RAIN_STATION_GRID_DIR = "/xian/rainfall/grid/images/:id"
 REDIS_RAIN_STATION_GRID_KEY = "xian:rainfall:rain_station_grid"
 # 雨量站存储标识符的redis的key
 REDIS_RAIN_STATION_IDENTIFIER_KEY = "xian:rainfall:rain_station_identifier"
+# 预测结果概率阈值（低于此值不返回给前端）
+PREDICT_PROBABILITY_THRESHOLD = 50
 
 # 开发环境
 [development]
