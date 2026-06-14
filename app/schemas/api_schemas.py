@@ -12,13 +12,14 @@ from pydantic import BaseModel, Field
 
 class RainfallPredictRequest(BaseModel):
     """暴雨灾害链预测请求"""
+    disaster_name: str = Field(min_length=1, max_length=255)
     point_ids: Optional[List[int]] = Field(None, max_length=500,
                                            description="点位ID列表，不传则查询所有点")
     region_code: Optional[str] = Field(None, description="行政区划代码（如 '610104'），不传则不限区域")
     rainfall: Optional[float] = Field(None, ge=0,
-                                       description="累计降雨量(mm)，不传则从气象表自动获取")
+                                      description="累计降雨量(mm)，不传则从气象表自动获取")
     duration: Optional[float] = Field(None, ge=0,
-                                       description="降雨持续时间(h)，不传则从气象表自动获取")
+                                      description="降雨持续时间(h)，不传则从气象表自动获取")
     operation_type: str = Field("模拟", min_length=1, max_length=50,
                                 description="操作类型（如 '模拟', '实时监测', '应急评估'）")
 
@@ -29,6 +30,7 @@ class RainfallPredictRequest(BaseModel):
 
 class EarthquakePredictRequest(BaseModel):
     """地震灾害链预测请求"""
+    disaster_name: str = Field(min_length=1, max_length=255)
     point_ids: Optional[List[int]] = Field(None, max_length=500,
                                            description="点位ID列表，不传则查询所有点")
     region_code: Optional[str] = Field(None, description="行政区划代码（如 '610104'），不传则不限区域")

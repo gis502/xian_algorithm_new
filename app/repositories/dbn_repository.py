@@ -689,12 +689,13 @@ class DbnRepository:
         return None
 
     @staticmethod
-    def save_inference_result(event_type: str, occurred_time, operation_type: str,
+    def save_inference_result(disaster_name: str, event_type: str, occurred_time, operation_type: str,
                               condition: dict, result: list) -> int:
         """
         保存推理结果到 inference_result 表
 
         Args:
+            disaster_name: 灾害名称
             event_type: 事件类型（'rainfall' 或 'earthquake'）
             occurred_time: 事件发生时间
             operation_type: 操作类型
@@ -706,11 +707,12 @@ class DbnRepository:
         """
         import json
         sql = """
-            INSERT INTO xian_inference_result (event_type, occurred_time, operation_type, condition, result)
-            VALUES (%s, %s, %s, %s::jsonb, %s::jsonb)
+            INSERT INTO xian_inference_result (name, event_type, occurred_time, operation_type, condition, result)
+            VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb)
             RETURNING id
         """
         row = db_helper.execute_query_one(sql, (
+            disaster_name,
             event_type,
             occurred_time,
             operation_type,

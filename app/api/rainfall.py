@@ -121,6 +121,7 @@ async def predict_rainfall(req: RainfallPredictRequest):
     """
     根据降雨量和持续时间，批量预测隐患点/风险点的灾害概率和等级。
 
+    - **disaster_name**: 灾害名称
     - **point_ids**: 点位ID列表（可选，不传则查询所有点）
     - **region_code**: 行政区划代码（可选，不传则不限区域）
     - **rainfall**: 累计降雨量(mm)，不传则从气象表自动获取
@@ -145,6 +146,7 @@ async def predict_rainfall(req: RainfallPredictRequest):
     if save_results:
         try:
             record_id = dbn_repository.save_inference_result(
+                disaster_name=req.disaster_name,
                 event_type="rainfall",
                 occurred_time=now,
                 operation_type=req.operation_type,

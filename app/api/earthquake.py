@@ -88,6 +88,7 @@ async def predict_earthquake(req: EarthquakePredictRequest):
     """
     根据震级、震源深度和震中位置，批量预测隐患点/风险点的次生灾害概率和等级。
 
+    - **disaster_name**: 灾害名称
     - **point_ids**: 点位ID列表（可选，不传则查询所有点）
     - **region_code**: 行政区划代码（可选，不传则不限区域）
     - **magnitude**: 震级(Richter)
@@ -123,6 +124,7 @@ async def predict_earthquake(req: EarthquakePredictRequest):
                 "epicenter_lat": req.epicenter_lat
             }
             record_id = dbn_repository.save_inference_result(
+                disaster_name=req.disaster_name,
                 event_type="earthquake",
                 occurred_time=req.occurred_time,
                 operation_type=req.operation_type,
