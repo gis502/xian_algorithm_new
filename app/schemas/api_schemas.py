@@ -2,7 +2,7 @@
 API 请求/响应数据模型
 """
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
 
 
@@ -47,19 +47,17 @@ class EarthquakePredictRequest(BaseModel):
 # 通用响应
 # ============================================================
 
-class PredictionItem(BaseModel):
-    """单个点位预测结果"""
-    id: int = Field(..., description="点位ID")
-    type: str = Field(..., description="类型: 隐患点 / 风险点")
-    probability: float = Field(..., description="最大灾害概率")
-    level: str = Field(..., description="灾害等级: 低/中/较高/高")
+class PredictData(BaseModel):
+    """预测数据"""
+    record_id: Optional[int] = Field(None, description="推理结果记录ID")
+    list: Dict[str, float] = Field(default_factory=dict, description="预测结果列表")
 
 
 class PredictResponse(BaseModel):
     """预测响应"""
     code: int = Field(200, description="状态码")
     message: str = Field("success", description="提示信息")
-    data: Optional[int] = Field(None, description="推理结果记录ID")
+    data: Optional[PredictData] = Field(None, description="预测数据")
 
 
 class UpdateMonitoringTimeRequest(BaseModel):

@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.api_schemas import EarthquakePredictRequest, PredictResponse, PredictionItem
+from app.schemas.api_schemas import EarthquakePredictRequest, PredictResponse, PredictData
 from app.utils.api_deps import get_earthquake_model, get_prediction_semaphore
 from app.repositories.dbn_repository import dbn_repository
 from app.config.paths import get_logger
@@ -121,4 +121,4 @@ async def predict_earthquake(req: EarthquakePredictRequest):
         except Exception as e:
             logger.error(f"保存推理结果失败: {e}", exc_info=True)
 
-    return PredictResponse(code=200, message="success", data=record_id)
+    return PredictResponse(code=200, message="success", data=PredictData(record_id=record_id, list=result_map))

@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.api_schemas import RainfallPredictRequest, PredictResponse, PredictionItem, UpdateMonitoringTimeRequest
+from app.schemas.api_schemas import RainfallPredictRequest, PredictResponse, PredictData, UpdateMonitoringTimeRequest
 from app.utils.api_deps import get_rainfall_model, get_prediction_semaphore
 from app.repositories.dbn_repository import dbn_repository
 from app.core.rainfall_manager import rainfall_manager
@@ -156,4 +156,4 @@ async def predict_rainfall(req: RainfallPredictRequest):
         except Exception as e:
             logger.error(f"保存推理结果失败: {e}", exc_info=True)
 
-    return PredictResponse(code=200, message="success", data=record_id)
+    return PredictResponse(code=200, message="success", data=PredictData(record_id=record_id, list=result_map))
