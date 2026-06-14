@@ -100,11 +100,12 @@ async def predict_earthquake(req: EarthquakePredictRequest):
     record_id = None
     if result_map:
         try:
+            # 存储经过默认值处理的条件（depth 默认值为 10.0）
             condition = {
                 "point_ids": req.point_ids,
                 "region_code": req.region_code,
                 "magnitude": req.magnitude,
-                "depth": req.depth,
+                "depth": req.depth,  # 已有默认值 10.0
                 "epicenter_lon": req.epicenter_lon,
                 "epicenter_lat": req.epicenter_lat
             }

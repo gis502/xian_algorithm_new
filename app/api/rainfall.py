@@ -52,7 +52,7 @@ def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
     同步执行暴雨预测（在线程池中运行）
 
     Returns:
-        (结果map, 输入条件, 当前时间)
+        (结果map, 实际使用的降雨数据, 当前时间)
     """
     points = _fetch_points(point_ids, region_code)
     if not points:
@@ -62,13 +62,26 @@ def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
     raw_results = model.predict_multiple_points(points, rainfall=rainfall, duration=duration)
     result_map = _build_prediction_map(raw_results)
 
-    # 构建条件和结果用于保存
+    # 获取实际使用的降雨数据（如果未传递，模型会从数据库查询）
+    actual_rainfall = rainfall
+    actual_duration = duration
+    if actual_rainfall is None or actual_duration is None:
+        # 获取第一个点的降雨数据作为参考
+        from app.repositories.dbn_repository import DbnRepository
+        first_point = points[0]
+        rain_data = DbnRepository.get_rainfall_data_with_duration(first_point['lon'], first_point['lat'])
+        if actual_rainfall is None:
+            actual_rainfall = rain_data.get('accum_rain', 0.0)
+        if actual_duration is None:
+            actual_duration = rain_data.get('duration_hours', 0)
+
+    # 构建经过默认值处理的条件用于保存
     now = datetime.now()
     condition = {
         "point_ids": point_ids,
         "region_code": region_code,
-        "rainfall": rainfall,
-        "duration": duration
+        "rainfall": actual_rainfall,
+        "duration": actual_duration
     }
 
     return result_map, condition, now
