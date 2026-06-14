@@ -2,7 +2,7 @@
 API 请求/响应数据模型
 """
 from datetime import datetime
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
@@ -51,7 +51,7 @@ class EarthquakePredictRequest(BaseModel):
 class PredictData(BaseModel):
     """预测数据"""
     record_id: Optional[int] = Field(None, description="推理结果记录ID")
-    list: Dict[str, float] = Field(default_factory=dict, description="预测结果列表")
+    list: Dict[str, Dict[str, Any]] = Field(default_factory=dict, description="预测结果列表，包含概率和经纬度")
 
 
 class PredictResponse(BaseModel):
