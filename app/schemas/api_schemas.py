@@ -59,8 +59,7 @@ class PredictResponse(BaseModel):
     """预测响应"""
     code: int = Field(200, description="状态码")
     message: str = Field("success", description="提示信息")
-    data: List[PredictionItem] = Field(default_factory=list, description="预测结果列表")
-    record_id: Optional[int] = Field(None, description="推理结果记录ID")
+    data: Optional[int] = Field(None, description="推理结果记录ID")
 
 
 class UpdateMonitoringTimeRequest(BaseModel):
