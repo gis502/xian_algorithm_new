@@ -86,8 +86,12 @@ def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
     if not points:
         return {}, {}, {}, occurred_time or datetime.now()
 
-    # 使用传入的时间或当前时间作为查询时间
-    query_time = occurred_time or datetime.now()
+    # 使用传入的时间，如果没有传则使用 rainfall_manager 中的全局查询时间，最后才用当前时间
+    if occurred_time:
+        query_time = occurred_time
+    else:
+        from app.core.rainfall_manager import rainfall_manager
+        query_time = rainfall_manager.get_current_query_time() or datetime.now()
 
     model = get_rainfall_model()
     raw_results = model.predict_multiple_points(points, rainfall=rainfall, duration=duration, query_time=query_time)
