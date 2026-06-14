@@ -55,7 +55,7 @@ def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
         occurred_time: 事件发生时间，用于查询降雨数据和DBN推理
 
     Returns:
-        (结果map, 经过默认值处理的条件, 实际使用的事件时间)
+        (结果map, 传入的条件, 实际使用的事件时间)
     """
     points = _fetch_points(point_ids, region_code)
     if not points:
@@ -68,25 +68,12 @@ def _predict_sync(point_ids: Optional[List[int]], region_code: Optional[str],
     raw_results = model.predict_multiple_points(points, rainfall=rainfall, duration=duration, query_time=query_time)
     result_map = _build_prediction_map(raw_results)
 
-    # 获取实际使用的降雨数据（如果未传递，模型会从数据库查询）
-    actual_rainfall = rainfall
-    actual_duration = duration
-    if actual_rainfall is None or actual_duration is None:
-        # 获取第一个点的降雨数据作为参考
-        from app.repositories.dbn_repository import DbnRepository
-        first_point = points[0]
-        rain_data = DbnRepository.get_rainfall_data_with_duration(first_point['lon'], first_point['lat'], query_time)
-        if actual_rainfall is None:
-            actual_rainfall = rain_data.get('accum_rain', 0.0)
-        if actual_duration is None:
-            actual_duration = rain_data.get('duration_hours', 0)
-
-    # 构建经过默认值处理的条件用于保存
+    # 存储传入的原始条件（降雨量和持续时间可能每个点不同，所以存储传入值）
     condition = {
         "point_ids": point_ids,
         "region_code": region_code,
-        "rainfall": actual_rainfall,
-        "duration": actual_duration,
+        "rainfall": rainfall,
+        "duration": duration,
         "occurred_time": query_time.isoformat() if hasattr(query_time, 'isoformat') else str(query_time)
     }
 
